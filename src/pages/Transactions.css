@@ -1,0 +1,366 @@
+.transactions-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.add-transaction-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  transition: all 0.3s;
+}
+
+.add-transaction-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+
+.transaction-form {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.transaction-form input,
+.transaction-form select {
+  flex: 1;
+  min-width: 150px;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.transaction-form input:focus,
+.transaction-form select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.transaction-form button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.transaction-form button[type="submit"] {
+  background: #48bb78;
+  color: white;
+}
+
+.transaction-form button[type="submit"]:hover {
+  background: #38a169;
+}
+
+.transaction-form button[type="button"] {
+  background: #f56565;
+  color: white;
+}
+
+.transaction-form button[type="button"]:hover {
+  background: #e53e3e;
+}
+
+.filters-section {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filter-buttons select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+}
+
+.transactions-list-full {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.transactions-list-full h3 {
+  margin-bottom: 1rem;
+  color: #1a202c;
+}
+
+.transaction-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  transition: background 0.3s;
+}
+
+.transaction-item:hover {
+  background: #f7fafc;
+}
+
+.transaction-item.income {
+  border-left: 4px solid #48bb78;
+}
+
+.transaction-item.expense {
+  border-left: 4px solid #f56565;
+}
+
+.transaction-info {
+  flex: 1;
+}
+
+.transaction-info strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #1a202c;
+}
+
+.transaction-info span {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-right: 1rem;
+}
+
+.transaction-amount {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.amount.income {
+  color: #48bb78;
+  font-weight: bold;
+}
+
+.amount.expense {
+  color: #f56565;
+  font-weight: bold;
+}
+
+.delete-btn {
+  background: #fed7d7;
+  color: #e53e3e;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.delete-btn:hover {
+  background: #feb2b2;
+  transform: scale(1.05);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+}
+
+.transactions-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.summary-card span {
+  flex: 1;
+  color: #718096;
+}
+
+.summary-card strong {
+  font-size: 1.1rem;
+  color: #1a202c;
+}
+
+@media (max-width: 768px) {
+  .transactions-content {
+    padding: 1rem;
+  }
+  
+  .filters-section {
+    flex-direction: column;
+  }
+  
+  .transaction-form {
+    flex-direction: column;
+  }
+  
+  .transaction-form input,
+  .transaction-form select,
+  .transaction-form button {
+    width: 100%;
+  }
+  
+  .transaction-info span {
+    display: inline-block;
+    margin-top: 0.25rem;
+  }
+  
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .transaction-amount {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* Fix for selects visibility */
+.transactions-content select,
+.filters-section select,
+.filter-buttons select {
+  color: #1a202c;
+  background: white;
+}
+
+.dark-mode .transactions-content select,
+.dark-mode .filters-section select,
+.dark-mode .filter-buttons select {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+/* Fix for search box in dark mode */
+.dark-mode .search-box {
+  background: #0f3460;
+  border-color: #2d3748;
+}
+
+.dark-mode .search-box input {
+  background: #0f3460;
+  color: #e2e8f0;
+}
+
+.dark-mode .search-box input::placeholder {
+  color: #a0aec0;
+}
+
+/* Fix for transaction form selects */
+.dark-mode .transaction-form select,
+.dark-mode .transaction-form input {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.dark-mode .transaction-form select option {
+  background: #0f3460;
+  color: #e2e8f0;
+}
+
+/* Edit button */
+.edit-btn {
+  background: #4299e1;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.edit-btn:hover {
+  background: #3182ce;
+  transform: scale(1.05);
+}
+
+/* Empty state button */
+.empty-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #a0aec0;
+}
+
+.empty-state svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  text-align: center;
+  padding: 2rem;
+  color: #667eea;
+}
