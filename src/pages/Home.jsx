@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, Wallet, Shield, BarChart3, Target } from 'lucide-react';
 import './Home.css';
+import { PieChart } from 'lucide-react';
 
 function Home({ user }) {
   return (

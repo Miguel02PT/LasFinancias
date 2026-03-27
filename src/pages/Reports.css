@@ -103,3 +103,144 @@
     overflow-x: auto;
   }
 }
+
+.export-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+  transition: all 0.3s;
+}
+
+.export-pdf-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+/* Header buttons */
+.header-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.export-btn,
+.export-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 0.85rem;
+}
+
+.export-btn {
+  background: #48bb78;
+  color: white;
+}
+
+.export-btn:hover {
+  background: #38a169;
+  transform: translateY(-2px);
+}
+
+.export-pdf-btn {
+  background: #dc2626;
+  color: white;
+}
+
+.export-pdf-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+/* Mobile Reports */
+@media (max-width: 768px) {
+  .reports-content {
+    padding: 1rem;
+  }
+
+  .report-card {
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  .report-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat-card-small {
+    padding: 0.75rem;
+  }
+
+  .header-user {
+    justify-content: flex-end;
+    width: auto;
+  }
+
+  .export-btn,
+  .export-pdf-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .header-user span {
+    font-size: 0.75rem;
+  }
+}
+
+.year-selector {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: 1rem;
+}
+
+.dark-mode .year-selector {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+/* Year Selector */
+.year-selector {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-right: 1rem;
+  color: #1a202c;
+}
+
+.year-selector:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Dark mode */
+.dark-mode .year-selector {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.dark-mode .year-selector option {
+  background: #0f3460;
+  color: #e2e8f0;
+}

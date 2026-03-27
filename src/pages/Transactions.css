@@ -364,3 +364,123 @@
   padding: 2rem;
   color: #667eea;
 }
+
+/* Mobile - Transactions */
+@media (max-width: 768px) {
+  .transactions-content {
+    padding: 1rem;
+    overflow-x: hidden;
+  }
+
+  .add-transaction-btn {
+    font-size: 0.9rem;
+    padding: 0.8rem;
+  }
+
+  .transaction-form {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .transaction-form input,
+  .transaction-form select {
+    width: 100%;
+    min-width: auto;
+    padding: 0.75rem;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+  }
+
+  .transaction-form button {
+    width: 100%;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .filters-section {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .search-box {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .search-box input {
+    font-size: 0.9rem;
+  }
+
+  .filter-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .filter-buttons select {
+    width: 100%;
+    padding: 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .transactions-list-full {
+    padding: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .transaction-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    min-width: 280px;
+  }
+
+  .transaction-info {
+    width: 100%;
+  }
+
+  .transaction-info strong {
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
+
+  .transaction-info span {
+    display: inline-block;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
+  }
+
+  .transaction-amount {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .amount {
+    font-size: 1rem;
+  }
+
+  .edit-btn,
+  .delete-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .transactions-summary {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .summary-card {
+    padding: 0.75rem;
+    justify-content: space-between;
+  }
+
+  .summary-card strong {
+    font-size: 1rem;
+  }
+}

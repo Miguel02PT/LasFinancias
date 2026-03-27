@@ -23,10 +23,10 @@ import {
   Edit2,
   Save,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  PieChart
 } from 'lucide-react';
 import './Transactions.css';
-import { useAccounts } from '../context/AccountsContext';
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -46,9 +46,6 @@ function Transactions() {
   const user = auth.currentUser;
 
   const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
-
-  const { accounts, selectedAccount, updateAccountBalance } = useAccounts();
-  const [transactionAccount, setTransactionAccount] = useState(selectedAccount?.id);
 
   const { formatCurrency } = useCurrency();
 
@@ -107,7 +104,7 @@ function Transactions() {
 
   const addTransaction = async (e) => {
     e.preventDefault();
-    if (!amount || !description || !category || !transactionAccount) return;
+    if (!amount || !description || !category) return;
 
     const newTransaction = {
       amount: parseFloat(amount),
@@ -115,18 +112,14 @@ function Transactions() {
       category,
       type,
       date: new Date(),
-      userId: user.uid,
-      accountId: transactionAccount
+      userId: user.uid
     };
 
     await addDoc(collection(db, 'users', user.uid, 'transactions'), newTransaction);
-    await updateAccountBalance(transactionAccount, parseFloat(amount), type);
-    
     showSuccess('Transaction added!');
     setAmount('');
     setDescription('');
     setCategory('');
-    setTransactionAccount(selectedAccount?.id);
     setShowForm(false);
     loadTransactions();
   };
@@ -189,8 +182,8 @@ function Transactions() {
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/goals', icon: Target, label: 'Goals' },
+    { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
-    { path: '/budgets', icon: Target, label: 'Budgets' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -271,16 +264,6 @@ function Transactions() {
               <select value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
-              </select>
-              <select 
-                value={transactionAccount || ''} 
-                onChange={(e) => setTransactionAccount(e.target.value)} 
-                required
-              >
-                <option value="">Select Account</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.name}</option>
-                ))}
               </select>
               <button type="submit">
                 <Save size={16} /> {editingTransaction ? 'Update' : 'Save'}

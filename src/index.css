@@ -29,6 +29,24 @@
     font-size: 16px;
   }
 }
+/* Garantir que dark mode cobre toda a tela */
+html, body {
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.dark-mode,
+.dark-mode body,
+.dark-mode html {
+  background: #1a1a2e !important;
+}
+
+/* Aplicar dark mode ao root também */
+.dark-mode #root {
+  background: #1a1a2e;
+}
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -256,4 +274,190 @@ code {
 
 .dark-mode .empty-state {
   color: #a0aec0;
+}
+
+.toast-undo {
+  background: #1a202c;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transform: translateY(20px);
+  transition: transform 0.3s;
+}
+
+.toast-undo.visible {
+  transform: translateY(0);
+}
+
+.undo-btn {
+  background: #ffd700;
+  color: #333;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.undo-btn:hover {
+  background: #ffc107;
+}
+
+/* Page transition animations */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* Melhorias gerais mobile */
+@media (max-width: 768px) {
+  #root {
+    border-inline: none;
+  }
+
+  .modal {
+    width: 95%;
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+
+  .modal input,
+  .modal select {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+
+  .modal-buttons button {
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Forçar dark mode no mobile */
+@media (max-width: 768px) {
+  .dark-mode {
+    background: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  .dark-mode .main-content {
+    background: #1a1a2e;
+  }
+
+  .dark-mode .sidebar {
+    background: #16213e;
+  }
+
+  .dark-mode .quick-actions,
+  .dark-mode .stat-card,
+  .dark-mode .recent-preview,
+  .dark-mode .transaction-form,
+  .dark-mode .transactions-list-full,
+  .dark-mode .report-card,
+  .dark-mode .settings-card,
+  .dark-mode .goal-form,
+  .dark-mode .goal-card,
+  .dark-mode .budget-card,
+  .dark-mode .balance-item,
+  .dark-mode .account-item,
+  .dark-mode .recurring-card {
+    background: #16213e;
+    color: #e2e8f0;
+  }
+
+  .dark-mode .stat-card h3,
+  .dark-mode .quick-actions h3,
+  .dark-mode .recent-preview h3,
+  .dark-mode .transactions-list-full h3,
+  .dark-mode .report-card h3 {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .transaction-info strong,
+  .dark-mode .balance-name,
+  .dark-mode .account-name,
+  .dark-mode .recurring-info strong {
+    color: #e2e8f0;
+  }
+
+  .dark-mode .transaction-info span,
+  .dark-mode .balance-amount,
+  .dark-mode .account-balance {
+    color: #a0aec0;
+  }
+
+  .dark-mode input,
+  .dark-mode select,
+  .dark-mode textarea {
+    background: #0f3460;
+    color: #e2e8f0;
+    border-color: #2d3748;
+  }
+
+  .dark-mode input::placeholder {
+    color: #a0aec0;
+  }
+}
+
+/* Melhorias gerais mobile */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .main-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .header-user {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .dashboard-content {
+    overflow-x: hidden;
+  }
+
+  .stats-grid {
+    gap: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
 }

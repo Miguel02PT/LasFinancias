@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { auth } from './firebase/config';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -9,8 +10,9 @@ import Reports from './pages/Reports';
 import Goals from './pages/Goals';
 import Budgets from './pages/Budgets';
 import Settings from './pages/Settings';
-import './App.css';
 import Recurring from './pages/Recurring';
+import { PageTransition } from './components/PageTransition';
+import './App.css';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -30,17 +32,87 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Home user={user} />} />
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/dashboard" />} />
-        <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route path="/transactions" element={user ? <Transactions /> : <Navigate to="/login" />} />
-        <Route path="/reports" element={user ? <Reports /> : <Navigate to="/login" />} />
-        <Route path="/goals" element={user ? <Goals /> : <Navigate to="/login" />} />
-        <Route path="/recurring" element={user ? <Recurring /> : <Navigate to="/login" />} />
-        <Route path="/budgets" element={user ? <Budgets /> : <Navigate to="/login" />} /> 
-        <Route path="/settings" element={user ? <Settings /> : <Navigate to="/login" />} />
-      </Routes>
+      <AnimatePresence mode="wait">
+        <Routes>
+          <Route path="/" element={
+            <PageTransition>
+              <Home user={user} />
+            </PageTransition>
+          } />
+          <Route path="/login" element={
+            !user ? (
+              <PageTransition>
+                <Login />
+              </PageTransition>
+            ) : (
+              <Navigate to="/dashboard" />
+            )
+          } />
+          <Route path="/dashboard" element={
+            user ? (
+              <PageTransition>
+                <Dashboard />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/transactions" element={
+            user ? (
+              <PageTransition>
+                <Transactions />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/reports" element={
+            user ? (
+              <PageTransition>
+                <Reports />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/goals" element={
+            user ? (
+              <PageTransition>
+                <Goals />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/recurring" element={
+            user ? (
+              <PageTransition>
+                <Recurring />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/budgets" element={
+            user ? (
+              <PageTransition>
+                <Budgets />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/settings" element={
+            user ? (
+              <PageTransition>
+                <Settings />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+        </Routes>
+      </AnimatePresence>
     </Router>
   );
 }

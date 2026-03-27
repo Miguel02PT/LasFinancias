@@ -6,6 +6,7 @@ import { Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings,
 import './Goals.css';
 import { RefreshCw } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
+import { PieChart } from 'lucide-react';
 
 function Goals() {
   const [goals, setGoals] = useState([]);
@@ -92,10 +93,10 @@ function Goals() {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
-    { path: '/budgets', icon: Target, label: 'Budgets' },
-    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
     { path: '/goals', icon: Target, label: 'Goals' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/budgets', icon: PieChart, label: 'Budgets' },  // ← mudado
+    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/settings', icon: Settings, label: 'Settings' },  // ← SEMPRE ÚLTIMO
   ];
 
   const handleLogout = async () => {

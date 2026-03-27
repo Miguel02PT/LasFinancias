@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../firebase/config';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query } from 'firebase/firestore';
-import { showSuccess, showError } from '../components/Toast';
+import { showSuccess, showError } from '../components/ToastWithUndo';
 
 const BalancesContext = createContext();
 
@@ -62,6 +62,23 @@ export function BalancesProvider({ children }) {
     }
   };
 
+  const updateBalance = async (id, data) => {
+    if (!user) return;
+    try {
+      const balanceRef = doc(db, 'users', user.uid, 'balances', id);
+      await updateDoc(balanceRef, {
+        name: data.name,
+        amount: parseFloat(data.amount),
+        includeInTotal: data.includeInTotal
+      });
+      setBalances(balances.map(b => b.id === id ? { ...b, ...data, amount: parseFloat(data.amount) } : b));
+      showSuccess(`Balance updated!`);
+    } catch (error) {
+      console.error("Error updating balance:", error);
+      showError("Failed to update balance");
+    }
+  };
+
   const deleteBalance = async (id) => {
     try {
       await deleteDoc(doc(db, 'users', user.uid, 'balances', id));
@@ -70,16 +87,6 @@ export function BalancesProvider({ children }) {
     } catch (error) {
       console.error("Error deleting balance:", error);
       showError("Failed to delete balance");
-    }
-  };
-
-  const updateBalance = async (id, amount) => {
-    try {
-      const balanceRef = doc(db, 'users', user.uid, 'balances', id);
-      await updateDoc(balanceRef, { amount });
-      setBalances(balances.map(b => b.id === id ? { ...b, amount } : b));
-    } catch (error) {
-      console.error("Error updating balance:", error);
     }
   };
 
@@ -94,8 +101,8 @@ export function BalancesProvider({ children }) {
     <BalancesContext.Provider value={{
       balances,
       addBalance,
-      deleteBalance,
       updateBalance,
+      deleteBalance,
       getTotalWithBalances,
       loading
     }}>

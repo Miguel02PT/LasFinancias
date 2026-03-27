@@ -4,20 +4,27 @@ import { useCurrency } from '../context/CurrencyContext';
 import { auth, db } from '../firebase/config';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid
+  PieChart as RechartsPieChart,
+  Pie, Cell, Tooltip, ResponsiveContainer,
+  LineChart, Line, CartesianGrid, XAxis, YAxis
 } from 'recharts';
 import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
-  Calendar, Download
+  Calendar, Download, FileText, RefreshCw, PieChart as PieChartIcon
 } from 'lucide-react';
-import { RefreshCw } from 'lucide-react';
 import './Reports.css';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { showSuccess } from '../components/ToastWithUndo';
+import { PageTransition } from '../components/PageTransition';
+import { SkeletonCard } from '../components/Skeleton';
 
 function Reports() {
   const [transactions, setTransactions] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const user = auth.currentUser;
 
   const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
@@ -32,9 +39,10 @@ function Reports() {
     if (transactions.length > 0) {
       prepareMonthlyData();
     }
-  }, [transactions]);
+  }, [transactions, selectedYear]);
 
   const loadTransactions = async () => {
+    setLoading(true);
     const q = query(
       collection(db, 'users', user.uid, 'transactions'),
       orderBy('date', 'desc')
@@ -45,17 +53,34 @@ function Reports() {
       transactionsData.push({ id: doc.id, ...doc.data() });
     });
     setTransactions(transactionsData);
+    setLoading(false);
   };
+
+  // Filtrar transações por ano
+  const filteredTransactions = transactions.filter(t => {
+    const year = t.date?.toDate()?.getFullYear();
+    return year === selectedYear;
+  });
+
+  // Obter anos disponíveis
+  const availableYears = [...new Set(transactions.map(t => 
+    t.date?.toDate()?.getFullYear()
+  ).filter(y => y))].sort((a, b) => b - a);
 
   const prepareMonthlyData = () => {
     const monthlyMap = new Map();
     
-    transactions.forEach(t => {
+    filteredTransactions.forEach(t => {
       const date = t.date?.toDate();
       if (date) {
         const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
         if (!monthlyMap.has(monthYear)) {
-          monthlyMap.set(monthYear, { month: monthYear, income: 0, expense: 0 });
+          monthlyMap.set(monthYear, { 
+            month: monthYear, 
+            income: 0, 
+            expense: 0,
+            balance: 0
+          });
         }
         const data = monthlyMap.get(monthYear);
         if (t.type === 'income') {
@@ -63,14 +88,22 @@ function Reports() {
         } else {
           data.expense += t.amount;
         }
+        data.balance = data.income - data.expense;
       }
     });
     
-    const sortedData = Array.from(monthlyMap.values()).reverse();
+    // Ordenar por data (mais antigo primeiro)
+    const sortedData = Array.from(monthlyMap.values()).sort((a, b) => {
+      const [aMonth, aYear] = a.month.split('/');
+      const [bMonth, bYear] = b.month.split('/');
+      if (aYear !== bYear) return parseInt(aYear) - parseInt(bYear);
+      return parseInt(aMonth) - parseInt(bMonth);
+    });
+    
     setMonthlyData(sortedData);
   };
 
-  const categoryData = transactions.reduce((acc, t) => {
+  const categoryData = filteredTransactions.reduce((acc, t) => {
     if (t.type === 'expense') {
       const existing = acc.find(item => item.name === t.category);
       if (existing) {
@@ -82,9 +115,44 @@ function Reports() {
     return acc;
   }, []);
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(18);
+    doc.text('LasFinancias - Financial Report', 14, 20);
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 30);
+    doc.text(`Year: ${selectedYear}`, 14, 37);
+    
+    const totalIncome = filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const totalExpense = filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    
+    doc.text(`Total Income: ${formatCurrency(totalIncome)}`, 14, 45);
+    doc.text(`Total Expenses: ${formatCurrency(totalExpense)}`, 14, 52);
+    doc.text(`Net: ${formatCurrency(totalIncome - totalExpense)}`, 14, 59);
+    
+    const tableData = filteredTransactions.slice(0, 20).map(t => [
+      new Date(t.date?.toDate()).toLocaleDateString(),
+      t.description,
+      t.category,
+      t.type,
+      formatCurrency(t.amount)
+    ]);
+    
+    doc.autoTable({
+      startY: 70,
+      head: [['Date', 'Description', 'Category', 'Type', 'Amount']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [102, 126, 234] }
+    });
+    
+    doc.save(`lasfinancias_report_${selectedYear}_${new Date().toISOString().split('T')[0]}.pdf`);
+    showSuccess('PDF exported!');
+  };
 
-  const handleExport = () => {
-    const csv = transactions.map(t => ({
+  const handleExportCSV = () => {
+    const csv = filteredTransactions.map(t => ({
       Date: new Date(t.date?.toDate()).toLocaleDateString(),
       Description: t.description,
       Category: t.category,
@@ -101,24 +169,25 @@ function Reports() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `transactions_${selectedYear}_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    showSuccess('CSV exported!');
   };
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
-    { path: '/budgets', icon: Target, label: 'Budgets' },
-    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
     { path: '/goals', icon: Target, label: 'Goals' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/budgets', icon: PieChartIcon, label: 'Budgets' },
+    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/settings', icon: Settings, label: 'Settings' },  
   ];
 
-  const handleLogout = async () => {
+  async function handleLogout() {
     await auth.signOut();
-  };
+  }
 
   return (
     <div className="app-layout">
@@ -153,85 +222,121 @@ function Reports() {
           </button>
           <h1>Reports</h1>
           <div className="header-user">
-            <button onClick={handleExport} className="export-btn">
-              <Download size={18} /> Export CSV
+            {availableYears.length > 0 && (
+              <select 
+                value={selectedYear} 
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="year-selector"
+              >
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            )}
+            <button onClick={handleExportCSV} className="export-btn">
+              <Download size={18} /> CSV
+            </button>
+            <button onClick={handleExportPDF} className="export-pdf-btn">
+              <FileText size={18} /> PDF
             </button>
             <span>{user?.email}</span>
           </div>
         </header>
 
-        <div className="reports-content">
-          {transactions.length === 0 ? (
-            <div className="empty-reports">
-              <p>No transactions yet. Add some to see your reports!</p>
-              <Link to="/transactions" className="action-link">Add Transaction →</Link>
-            </div>
-          ) : (
-            <>
-              {/* Category Chart */}
-              <div className="report-card">
-                <h3>Expenses by Category</h3>
-                <ResponsiveContainer width="100%" height={350}>
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatCurrency(value)} />
-                  </PieChart>
-                </ResponsiveContainer>
+        <PageTransition>
+          <div className="reports-content">
+            {loading ? (
+              <SkeletonCard />
+            ) : filteredTransactions.length === 0 ? (
+              <div className="empty-reports">
+                <p>No transactions yet for {selectedYear}. Add some to see your reports!</p>
+                <Link to="/transactions" className="action-link">Add Transaction →</Link>
               </div>
-
-              {/* Monthly Trend */}
-              {monthlyData.length > 0 && (
+            ) : (
+              <>
                 <div className="report-card">
-                  <h3>Monthly Trend</h3>
+                  <h3>Expenses by Category</h3>
                   <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
+                    <RechartsPieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
                       <Tooltip formatter={(value) => formatCurrency(value)} />
-                      <Line type="monotone" dataKey="income" stroke="#48bb78" strokeWidth={2} />
-                      <Line type="monotone" dataKey="expense" stroke="#f56565" strokeWidth={2} />
-                    </LineChart>
+                    </RechartsPieChart>
                   </ResponsiveContainer>
                 </div>
-              )}
 
-              {/* Summary Stats */}
-              <div className="report-stats">
-                <div className="stat-card-small">
-                  <Calendar size={20} />
-                  <span>Total Transactions</span>
-                  <strong>{transactions.length}</strong>
+                {monthlyData.length > 0 && (
+                  <>
+                    <div className="report-card">
+                      <h3>Monthly Trend</h3>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <LineChart data={monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Line type="monotone" dataKey="income" stroke="#48bb78" strokeWidth={2} />
+                          <Line type="monotone" dataKey="expense" stroke="#f56565" strokeWidth={2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="report-card">
+                      <h3>Cumulative Balance</h3>
+                      <ResponsiveContainer width="100%" height={350}>
+                        <LineChart data={monthlyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip formatter={(value) => formatCurrency(value)} />
+                          <Line 
+                            type="monotone" 
+                            dataKey="balance" 
+                            stroke="#667eea" 
+                            strokeWidth={3}
+                            dot={{ fill: '#667eea', r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </>
+                )}
+
+                <div className="report-stats">
+                  <div className="stat-card-small">
+                    <Calendar size={20} />
+                    <span>Total Transactions</span>
+                    <strong>{filteredTransactions.length}</strong>
+                  </div>
+                  <div className="stat-card-small">
+                    <span>Total Income</span>
+                    <strong className="positive">
+                      {formatCurrency(filteredTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}
+                    </strong>
+                  </div>
+                  <div className="stat-card-small">
+                    <span>Total Expenses</span>
+                    <strong className="negative">
+                      {formatCurrency(filteredTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}
+                    </strong>
+                  </div>
                 </div>
-                <div className="stat-card-small">
-                  <span>Total Income</span>
-                  <strong className="positive">
-                    {formatCurrency(transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))}
-                  </strong>
-                </div>
-                <div className="stat-card-small">
-                  <span>Total Expenses</span>
-                  <strong className="negative">
-                    {formatCurrency(transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}
-                  </strong>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        </PageTransition>
       </main>
     </div>
   );

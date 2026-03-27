@@ -2,20 +2,30 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auth } from '../firebase/config';
 import { useCurrency } from '../context/CurrencyContext';
-import { Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings as SettingsIcon, LogOut, Moon, Sun, DollarSign, RefreshCw } from 'lucide-react';
+import { Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings as SettingsIcon, LogOut, Moon, Sun, DollarSign, RefreshCw,PieChart } from 'lucide-react';
 import './Settings.css';
-import { PieChart } from 'lucide-react';
 
 function Settings() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { currency, setCurrency } = useCurrency();  // ← usar o contexto
+  const { currency, setCurrency } = useCurrency();
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('theme') || 'light';
+    const saved = localStorage.getItem('theme');
+    return saved === 'dark' ? 'dark' : 'light';
   });
   const user = auth.currentUser;
 
   const currencies = ['USD', 'EUR', 'GBP', 'BRL'];
 
+  // Garantir que o tema começa light se não houver saved
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (!savedTheme) {
+      localStorage.setItem('theme', 'light');
+      setTheme('light');
+    }
+  }, []);
+
+  // Aplicar o tema quando mudar
   useEffect(() => {
     if (theme === 'dark') {
       document.body.classList.add('dark-mode');
@@ -30,14 +40,14 @@ function Settings() {
   };
 
   const navItems = [
-  { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/transactions', icon: Receipt, label: 'Transactions' },
-  { path: '/reports', icon: BarChart3, label: 'Reports' },
-  { path: '/budgets', icon: Target, label: 'Budgets' },
-  { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
-  { path: '/goals', icon: Target, label: 'Goals' },
-  { path: '/settings', icon: SettingsIcon, label: 'Settings' },
-];
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { path: '/transactions', icon: Receipt, label: 'Transactions' },
+    { path: '/reports', icon: BarChart3, label: 'Reports' },
+    { path: '/goals', icon: Target, label: 'Goals' },
+    { path: '/budgets', icon: PieChart, label: 'Budgets' },
+    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/settings', icon: SettingsIcon, label: 'Settings' },
+  ];
 
   return (
     <div className="app-layout">

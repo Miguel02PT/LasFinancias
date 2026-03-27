@@ -7,7 +7,7 @@ import { showSuccess, showError } from '../components/Toast';
 import { motion } from 'framer-motion';
 import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
-  PlusCircle, Trash2, Edit2, Save, XCircle, RefreshCw
+  PlusCircle, Trash2, Edit2, Save, XCircle, RefreshCw,PieChart
 } from 'lucide-react';
 import './Recurring.css';
 
@@ -76,9 +76,9 @@ function Recurring() {
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/goals', icon: Target, label: 'Goals' },
-    { path: '/budgets', icon: Target, label: 'Budgets' },
+    { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
-    { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/settings', icon: Settings, label: 'Settings' },  // ← SEMPRE ÚLTIMO
   ];
 
   const handleLogout = async () => {

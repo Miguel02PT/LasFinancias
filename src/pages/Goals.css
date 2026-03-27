@@ -133,3 +133,79 @@
     gap: 1rem;
   }
 }
+
+/* Dark mode para Goals */
+.dark-mode .goal-card {
+  background: #16213e;
+  border: 1px solid #2d3748;
+}
+
+.dark-mode .goal-info h3 {
+  color: #e2e8f0;
+}
+
+.dark-mode .goal-info p {
+  color: #a0aec0;
+}
+
+.dark-mode .progress-bar {
+  background: #2d3748;
+}
+
+.dark-mode .progress-text {
+  color: #a0aec0;
+}
+
+/* Mobile - Goals */
+@media (max-width: 768px) {
+  .goals-content {
+    padding: 1rem;
+  }
+
+  .goal-form {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .goal-form input {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+
+  .goal-form button {
+    width: 100%;
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  .goal-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .goal-info {
+    width: 100%;
+  }
+
+  .goal-info h3 {
+    font-size: 1.1rem;
+    word-break: break-word;
+  }
+
+  .goal-info p {
+    font-size: 0.9rem;
+  }
+
+  .progress-bar {
+    margin: 0.5rem 0;
+  }
+
+  .delete-goal {
+    width: 40px;
+    height: 40px;
+  }
+}
