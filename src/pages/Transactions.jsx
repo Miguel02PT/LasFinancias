@@ -1,3 +1,4 @@
+// Transactions.jsx - COMPLETO CORRIGIDO
 import { useState, useEffect } from 'react';
 import { useCurrency } from '../context/CurrencyContext';
 import { Link } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { auth, db } from '../firebase/config';
 import { collection, query, getDocs, addDoc, deleteDoc, updateDoc, doc, orderBy } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '../components/Toast';
+import { generateFutureExecutions } from '../services/recurringService';
 import { 
   PlusCircle, 
   Trash2, 
@@ -24,17 +26,28 @@ import {
   Save,
   XCircle,
   RefreshCw,
-  PieChart
+  PieChart,
+  Calendar,
+  PiggyBank,
+  MessageSquare,
+  Camera
 } from 'lucide-react';
 import './Transactions.css';
+import { useSavingsRules } from '../context/SavingsRulesContext';
+import { useBalances } from '../context/BalancesContext';
+import { InvoiceScanner } from '../components/InvoiceScanner';
+import { checkInvoiceScannerAccess } from '../services/subscriptionService';
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [scheduledTransactions, setScheduledTransactions] = useState([]);
+  const [showScheduled, setShowScheduled] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [type, setType] = useState('expense');
+  const [selectedBalance, setSelectedBalance] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -43,14 +56,21 @@ function Transactions() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [invoiceScannerOpen, setInvoiceScannerOpen] = useState(false);
   const user = auth.currentUser;
 
   const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
 
   const { formatCurrency } = useCurrency();
+  const { balances, loadBalances } = useBalances();
+  const { processSalaryTransaction } = useSavingsRules();
 
   useEffect(() => {
-    if (user) loadTransactions();
+    if (user) {
+      loadTransactions();
+      loadScheduledTransactions();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -70,6 +90,38 @@ function Transactions() {
     });
     setTransactions(transactionsData);
     setLoading(false);
+  };
+
+  const loadScheduledTransactions = async () => {
+    const recurringRef = collection(db, 'users', user.uid, 'recurring');
+    const snapshot = await getDocs(recurringRef);
+    const scheduled = [];
+    
+    snapshot.forEach(doc => {
+      const rec = { id: doc.id, ...doc.data() };
+      if (rec.isActive) {
+        const nextDate = rec.nextExecution?.toDate ? rec.nextExecution.toDate() : new Date(rec.nextExecution);
+        const now = new Date();
+        
+        if (nextDate > now) {
+          scheduled.push({
+            date: new Date(nextDate),
+            amount: rec.amount,
+            description: rec.description,
+            category: rec.category,
+            type: rec.type,
+            balanceId: rec.balanceId,
+            balanceName: rec.balanceName,
+            isScheduled: true,
+            recurringId: rec.id,
+            frequency: rec.frequency
+          });
+        }
+      }
+    });
+    
+    scheduled.sort((a, b) => new Date(a.date) - new Date(b.date));
+    setScheduledTransactions(scheduled);
   };
 
   const getMonthYear = (date) => {
@@ -102,24 +154,64 @@ function Transactions() {
     setFilteredTransactions(filtered);
   };
 
+  const handleInvoiceScannerClick = async () => {
+    try {
+      const { hasAccess, message } = await checkInvoiceScannerAccess(user.uid);
+      
+      if (hasAccess) {
+        setInvoiceScannerOpen(true);
+      } else {
+        showError(message);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar acesso:', error);
+      showError('Erro ao verificar acesso ao Invoice Scanner');
+    }
+  };
+
   const addTransaction = async (e) => {
     e.preventDefault();
     if (!amount || !description || !category) return;
 
+    const addAmountValue = parseFloat(amount);
     const newTransaction = {
-      amount: parseFloat(amount),
+      amount: addAmountValue,
       description,
       category,
       type,
       date: new Date(),
-      userId: user.uid
+      userId: user.uid,
+      balanceId: selectedBalance || null
     };
 
-    await addDoc(collection(db, 'users', user.uid, 'transactions'), newTransaction);
-    showSuccess('Transaction added!');
+    const docRef = await addDoc(collection(db, 'users', user.uid, 'transactions'), newTransaction);
+    
+    // Atualizar balance se selecionado
+    if (selectedBalance) {
+      const balance = balances.find(b => b.id === selectedBalance);
+      if (balance) {
+        const newBalance = type === 'income' 
+          ? balance.amount + addAmountValue
+          : balance.amount - addAmountValue;
+        const balanceRef = doc(db, 'users', user.uid, 'balances', selectedBalance);
+        await updateDoc(balanceRef, { amount: newBalance });
+        await loadBalances();
+      }
+    }
+    
+    // Se for um salário, aplicar auto-save rules
+    if (type === 'income' && (description.toLowerCase().includes('salary') || category === 'Salary')) {
+      await processSalaryTransaction(addAmountValue, docRef.id, new Date());
+      showSuccess('Transaction added! Auto-save rules applied!');
+    } else {
+      showSuccess('Transaction added!');
+    }
+    
     setAmount('');
     setDescription('');
     setCategory('');
+    setSelectedBalance('');
+    setUseCustomCategory(false);
     setShowForm(false);
     loadTransactions();
   };
@@ -142,13 +234,31 @@ function Transactions() {
     setDescription('');
     setCategory('');
     setType('expense');
+    setSelectedBalance('');
+    setUseCustomCategory(false);
     loadTransactions();
   };
 
   const deleteTransaction = async (id) => {
     if (window.confirm('Delete this transaction?')) {
+      // Recuperar a transação para reverter o saldo
+      const transaction = transactions.find(t => t.id === id);
+      if (transaction && transaction.balanceId) {
+        const balance = balances.find(b => b.id === transaction.balanceId);
+        if (balance) {
+          // Desfazer o impacto da transação no saldo
+          const reversedAmount = transaction.type === 'income' 
+            ? balance.amount - transaction.amount  // Remover o que foi adicionado
+            : balance.amount + transaction.amount; // Adicionar o que foi removido
+          
+          const balanceRef = doc(db, 'users', user.uid, 'balances', transaction.balanceId);
+          await updateDoc(balanceRef, { amount: reversedAmount });
+          await loadBalances();
+        }
+      }
+      
       await deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
-      showSuccess('Transaction deleted');
+      showSuccess('Transaction deleted and saldo reverted ↩️');
       loadTransactions();
     }
   };
@@ -159,6 +269,7 @@ function Transactions() {
     setDescription(transaction.description);
     setCategory(transaction.category);
     setType(transaction.type);
+    setSelectedBalance(transaction.balanceId || '');
     setShowForm(true);
   };
 
@@ -168,6 +279,8 @@ function Transactions() {
     setDescription('');
     setCategory('');
     setType('expense');
+    setSelectedBalance('');
+    setUseCustomCategory(false);
     setShowForm(false);
   };
 
@@ -184,6 +297,8 @@ function Transactions() {
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
+    { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -225,15 +340,42 @@ function Transactions() {
         </header>
 
         <div className="transactions-content">
+          {/* Scheduled Toggle */}
+          <div className="scheduled-toggle">
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={showScheduled}
+                onChange={(e) => setShowScheduled(e.target.checked)}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+            <span className="toggle-label">
+              <Calendar size={16} />
+              Show scheduled transactions
+            </span>
+          </div>
+
           {!showForm ? (
-            <motion.button 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="add-transaction-btn" 
-              onClick={() => setShowForm(true)}
-            >
-              <PlusCircle size={20} /> Add Transaction
-            </motion.button>
+            <div className="action-buttons-group">
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="add-transaction-btn" 
+                onClick={() => setShowForm(true)}
+              >
+                <PlusCircle size={20} /> Add Transaction
+              </motion.button>
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="invoice-scanner-btn" 
+                onClick={handleInvoiceScannerClick}
+                title="Pro Feature - Scan invoice"
+              >
+                <Camera size={20} /> Invoice Scanner
+              </motion.button>
+            </div>
           ) : (
             <motion.form 
               initial={{ opacity: 0, y: -20 }}
@@ -247,6 +389,7 @@ function Transactions() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
+                step="0.01"
               />
               <input
                 type="text"
@@ -255,15 +398,74 @@ function Transactions() {
                 onChange={(e) => setDescription(e.target.value)}
                 required
               />
-              <select value={category} onChange={(e) => setCategory(e.target.value)} required>
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+              {useCustomCategory ? (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter custom category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseCustomCategory(false);
+                      setCategory('');
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#e2e8f0',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ✕ Use Select
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} required style={{ flex: 1 }}>
+                    <option value="">Select Category</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setUseCustomCategory(true);
+                      setCategory('');
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#fff5e6',
+                      border: '2px solid #f6ad55',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#dd6b20'
+                    }}
+                  >
+                    ✏️ Custom
+                  </button>
+                </div>
+              )}
               <select value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
+              </select>
+              <select value={selectedBalance} onChange={(e) => setSelectedBalance(e.target.value)}>
+                <option value="">Select Balance (optional)</option>
+                {balances.map(b => (
+                  <option key={b.id} value={b.id}>{b.name} ({formatCurrency(b.amount)})</option>
+                ))}
               </select>
               <button type="submit">
                 <Save size={16} /> {editingTransaction ? 'Update' : 'Save'}
@@ -309,7 +511,7 @@ function Transactions() {
             <h3>All Transactions</h3>
             {loading ? (
               <div className="loading-spinner">Loading...</div>
-            ) : filteredTransactions.length === 0 ? (
+            ) : filteredTransactions.length === 0 && (!showScheduled || scheduledTransactions.length === 0) ? (
               <div className="empty-state">
                 <Receipt size={48} />
                 <p>No transactions found.</p>
@@ -318,7 +520,7 @@ function Transactions() {
                 </button>
               </div>
             ) : (
-              <AnimatePresence>
+              <>
                 {filteredTransactions.map((transaction) => (
                   <motion.div
                     key={transaction.id}
@@ -336,16 +538,38 @@ function Transactions() {
                       <span className={`amount ${transaction.type}`}>
                         {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
                       </span>
-                      <button onClick={() => startEdit(transaction)} className="edit-btn">
+                      <button onClick={() => startEdit(transaction)} className="edit-btn" aria-label="Edit">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => deleteTransaction(transaction.id)} className="delete-btn">
+                      <button onClick={() => deleteTransaction(transaction.id)} className="delete-btn" aria-label="Delete">
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </motion.div>
                 ))}
-              </AnimatePresence>
+
+                {showScheduled && scheduledTransactions.length > 0 && (
+                  <>
+                    <div className="scheduled-header">
+                      <Calendar size={18} />
+                      <span>Scheduled Transactions</span>
+                    </div>
+                    {scheduledTransactions.map((tx, idx) => (
+                      <div key={`scheduled-${idx}`} className="transaction-item scheduled">
+                        <div className="transaction-info">
+                          <strong>{tx.description}</strong>
+                          <span>{tx.category}</span>
+                          <span className="scheduled-date">{new Date(tx.date).toLocaleDateString()}</span>
+                          <span className="scheduled-badge">⏰ Scheduled</span>
+                        </div>
+                        <div className="transaction-amount scheduled-amount">
+                          {tx.type === 'income' ? '+' : '-'} {formatCurrency(tx.amount)}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
             )}
           </div>
 
@@ -375,6 +599,18 @@ function Transactions() {
           </div>
         </div>
       </main>
+
+      {/* Invoice Scanner Modal */}
+      <InvoiceScanner
+        isOpen={invoiceScannerOpen}
+        onClose={() => setInvoiceScannerOpen(false)}
+        onSuccess={(transaction) => {
+          loadTransactions();
+          showSuccess(`✅ Transação adicionada: €${transaction.amount}`);
+        }}
+        balanceId={selectedBalance}
+        userId={user?.uid}
+      />
     </div>
   );
 }

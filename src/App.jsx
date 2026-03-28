@@ -11,8 +11,12 @@ import Goals from './pages/Goals';
 import Budgets from './pages/Budgets';
 import Settings from './pages/Settings';
 import Recurring from './pages/Recurring';
+import Admin from './pages/Admin';
 import { PageTransition } from './components/PageTransition';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
+import SavingsRules from './pages/SavingsRules';
+import Feedback from './pages/Feedback';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -32,49 +36,59 @@ function App() {
 
   return (
     <Router>
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/" element={
-            <PageTransition>
-              <Home user={user} />
-            </PageTransition>
-          } />
-          <Route path="/login" element={
-            !user ? (
+      <ErrorBoundary>
+        <AnimatePresence mode="wait">
+          <Routes>
+            <Route path="/" element={
               <PageTransition>
-                <Login />
+                <Home user={user} />
               </PageTransition>
-            ) : (
-              <Navigate to="/dashboard" />
-            )
-          } />
-          <Route path="/dashboard" element={
-            user ? (
-              <PageTransition>
-                <Dashboard />
-              </PageTransition>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } />
-          <Route path="/transactions" element={
-            user ? (
-              <PageTransition>
-                <Transactions />
-              </PageTransition>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } />
-          <Route path="/reports" element={
-            user ? (
-              <PageTransition>
-                <Reports />
-              </PageTransition>
-            ) : (
-              <Navigate to="/login" />
-            )
-          } />
+            } />
+            <Route path="/login" element={
+              !user ? (
+                <PageTransition>
+                  <Login />
+                </PageTransition>
+              ) : (
+                <Navigate to="/dashboard" />
+              )
+            } />
+            <Route path="/feedback" element={
+              user ? (
+                <PageTransition>
+                  <Feedback />
+                </PageTransition>
+              ) : (
+                <Navigate to="/login" />
+              )
+            } />
+            <Route path="/dashboard" element={
+              user ? (
+                <PageTransition>
+                  <Dashboard />
+                </PageTransition>
+              ) : (
+                <Navigate to="/login" />
+              )
+            } />
+            <Route path="/transactions" element={
+              user ? (
+                <PageTransition>
+                  <Transactions />
+                </PageTransition>
+              ) : (
+                <Navigate to="/login" />
+              )
+            } />
+            <Route path="/reports" element={
+              user ? (
+                <PageTransition>
+                  <Reports />
+                </PageTransition>
+              ) : (
+                <Navigate to="/login" />
+              )
+            } />
           <Route path="/goals" element={
             user ? (
               <PageTransition>
@@ -111,8 +125,19 @@ function App() {
               <Navigate to="/login" />
             )
           } />
-        </Routes>
-      </AnimatePresence>
+          <Route path="/admin" element={
+            user ? (
+              <PageTransition>
+                <Admin />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/savings-rules" element={user ? <SavingsRules /> : <Navigate to="/login" />} />
+          </Routes>
+        </AnimatePresence>
+      </ErrorBoundary>
     </Router>
   );
 }

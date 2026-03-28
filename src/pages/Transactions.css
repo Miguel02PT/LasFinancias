@@ -4,26 +4,43 @@
   margin: 0 auto;
 }
 
-.add-transaction-btn {
-  width: 100%;
+/* Action Buttons Group */
+.action-buttons-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.add-transaction-btn,
+.invoice-scanner-btn {
   padding: 1rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 2rem;
   transition: all 0.3s;
+  font-weight: 600;
 }
 
-.add-transaction-btn:hover {
+.invoice-scanner-btn {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.add-transaction-btn:hover,
+.invoice-scanner-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+
+.invoice-scanner-btn:hover {
+  box-shadow: 0 4px 12px rgba(34,197,94,0.4);
 }
 
 .transaction-form {
@@ -81,6 +98,7 @@
   background: #e53e3e;
 }
 
+/* Filters */
 .filters-section {
   display: flex;
   gap: 1rem;
@@ -109,6 +127,7 @@
 .filter-buttons {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .filter-buttons select {
@@ -119,12 +138,14 @@
   cursor: pointer;
 }
 
+/* Transactions List */
 .transactions-list-full {
   background: white;
   padding: 1.5rem;
   border-radius: 12px;
   margin-bottom: 2rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  overflow-x: auto;
 }
 
 .transactions-list-full h3 {
@@ -185,12 +206,13 @@
   font-weight: bold;
 }
 
+/* Edit/Delete Buttons - Touch optimized */
+.edit-btn,
 .delete-btn {
-  background: #fed7d7;
-  color: #e53e3e;
-  border: none;
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 8px;
   cursor: pointer;
   display: inline-flex;
@@ -199,17 +221,51 @@
   transition: all 0.3s;
 }
 
+.edit-btn {
+  background: #4299e1;
+  color: white;
+  border: none;
+}
+
+.edit-btn:hover {
+  background: #3182ce;
+  transform: scale(1.05);
+}
+
+.delete-btn {
+  background: #fed7d7;
+  color: #e53e3e;
+  border: none;
+}
+
 .delete-btn:hover {
   background: #feb2b2;
   transform: scale(1.05);
 }
 
+/* Empty State */
 .empty-state {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem;
   color: #a0aec0;
 }
 
+.empty-state svg {
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Summary Cards */
 .transactions-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -236,143 +292,148 @@
   color: #1a202c;
 }
 
-@media (max-width: 768px) {
-  .transactions-content {
-    padding: 1rem;
-  }
-  
-  .filters-section {
-    flex-direction: column;
-  }
-  
-  .transaction-form {
-    flex-direction: column;
-  }
-  
-  .transaction-form input,
-  .transaction-form select,
-  .transaction-form button {
-    width: 100%;
-  }
-  
-  .transaction-info span {
-    display: inline-block;
-    margin-top: 0.25rem;
-  }
-  
-  .transaction-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-  
-  .transaction-amount {
-    width: 100%;
-    justify-content: space-between;
-  }
-}
-
-/* Fix for selects visibility */
-.transactions-content select,
-.filters-section select,
-.filter-buttons select {
-  color: #1a202c;
-  background: white;
-}
-
-.dark-mode .transactions-content select,
-.dark-mode .filters-section select,
-.dark-mode .filter-buttons select {
-  background: #0f3460;
-  color: #e2e8f0;
-  border-color: #2d3748;
-}
-
-/* Fix for search box in dark mode */
-.dark-mode .search-box {
-  background: #0f3460;
-  border-color: #2d3748;
-}
-
-.dark-mode .search-box input {
-  background: #0f3460;
-  color: #e2e8f0;
-}
-
-.dark-mode .search-box input::placeholder {
-  color: #a0aec0;
-}
-
-/* Fix for transaction form selects */
-.dark-mode .transaction-form select,
-.dark-mode .transaction-form input {
-  background: #0f3460;
-  color: #e2e8f0;
-  border-color: #2d3748;
-}
-
-.dark-mode .transaction-form select option {
-  background: #0f3460;
-  color: #e2e8f0;
-}
-
-/* Edit button */
-.edit-btn {
-  background: #4299e1;
-  color: white;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s;
-}
-
-.edit-btn:hover {
-  background: #3182ce;
-  transform: scale(1.05);
-}
-
-/* Empty state button */
-.empty-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: #a0aec0;
-}
-
-.empty-state svg {
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-/* Loading spinner */
+/* Loading Spinner */
 .loading-spinner {
   text-align: center;
   padding: 2rem;
   color: #667eea;
 }
 
-/* Mobile - Transactions */
+/* Scheduled Transactions Toggle */
+.scheduled-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.dark-mode .scheduled-toggle {
+  background: #0f3460;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e0;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #667eea;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.dark-mode .toggle-label {
+  color: #e2e8f0;
+}
+
+/* Scheduled Header */
+.scheduled-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 0 0.75rem 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+  color: #f59e0b;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.dark-mode .scheduled-header {
+  border-top-color: #2d3748;
+}
+
+/* Scheduled Transaction Item */
+.transaction-item.scheduled {
+  background: #fef9e6;
+  border-left: 4px solid #f59e0b;
+  opacity: 0.85;
+}
+
+.dark-mode .transaction-item.scheduled {
+  background: #2d2a1f;
+}
+
+.scheduled-date {
+  font-size: 0.7rem;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.scheduled-badge {
+  background: #f59e0b;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  margin-left: 0.5rem;
+}
+
+.scheduled-amount {
+  color: #f59e0b;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE
+   ============================================ */
 @media (max-width: 768px) {
   .transactions-content {
     padding: 1rem;
-    overflow-x: hidden;
   }
 
-  .add-transaction-btn {
+  .action-buttons-group {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .add-transaction-btn,
+  .invoice-scanner-btn {
     font-size: 0.9rem;
     padding: 0.8rem;
   }
@@ -427,8 +488,6 @@
 
   .transactions-list-full {
     padding: 1rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .transaction-item {
@@ -436,7 +495,6 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.75rem;
-    min-width: 280px;
   }
 
   .transaction-info {
@@ -464,12 +522,6 @@
     font-size: 1rem;
   }
 
-  .edit-btn,
-  .delete-btn {
-    width: 32px;
-    height: 32px;
-  }
-
   .transactions-summary {
     flex-direction: column;
     gap: 0.75rem;
@@ -483,4 +535,123 @@
   .summary-card strong {
     font-size: 1rem;
   }
+}
+
+/* Dark mode fixes for selects */
+.transactions-content select,
+.filters-section select,
+.filter-buttons select {
+  color: #1a202c;
+  background: white;
+}
+
+.dark-mode .transactions-content select,
+.dark-mode .filters-section select,
+.dark-mode .filter-buttons select {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.dark-mode .search-box {
+  background: #0f3460;
+  border-color: #2d3748;
+}
+
+.dark-mode .search-box input {
+  background: #0f3460;
+  color: #e2e8f0;
+}
+
+.dark-mode .search-box input::placeholder {
+  color: #a0aec0;
+}
+
+.dark-mode .transaction-form select,
+.dark-mode .transaction-form input {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.dark-mode .transaction-form select option {
+  background: #0f3460;
+  color: #e2e8f0;
+}
+
+/* Transactions.css - adicionar no final */
+.dark-mode .search-box {
+  background: #1e2a3a;
+  border-color: #2d3748;
+}
+
+.dark-mode .search-box input {
+  background: #1e2a3a;
+  color: #e2e8f0;
+}
+
+.dark-mode .search-box input::placeholder {
+  color: #8b9cb0;
+}
+
+.dark-mode .search-box svg {
+  color: #8b9cb0;
+}
+
+.dark-mode .search-box input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
+}
+
+/* ============================================
+   SEARCH BOX - LIGHT MODE
+   ============================================ */
+.search-box {
+  background: white;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s;
+}
+
+.search-box input {
+  background: white;
+  color: #1a202c;
+}
+
+.search-box input::placeholder {
+  color: #a0aec0;
+}
+
+.search-box svg {
+  color: #718096;
+}
+
+.search-box:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102,126,234,0.1);
+}
+
+/* ============================================
+   SEARCH BOX - DARK MODE
+   ============================================ */
+.dark-mode .search-box {
+  background: #1e2a3a;
+  border-color: #2d3748;
+}
+
+.dark-mode .search-box input {
+  background: #1e2a3a;
+  color: #e2e8f0;
+}
+
+.dark-mode .search-box input::placeholder {
+  color: #8b9cb0;
+}
+
+.dark-mode .search-box svg {
+  color: #8b9cb0;
+}
+
+.dark-mode .search-box:focus-within {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102,126,234,0.2);
 }

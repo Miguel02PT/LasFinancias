@@ -7,7 +7,6 @@ export async function processRecurringTransactions(userId) {
   console.log("Processing recurring transactions for user:", userId);
   
   try {
-    // Buscar todas as transações recorrentes
     const recurringRef = collection(db, 'users', userId, 'recurring');
     const recurringSnapshot = await getDocs(recurringRef);
     
@@ -17,45 +16,24 @@ export async function processRecurringTransactions(userId) {
     }
     
     let newTransactions = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
     for (const docSnap of recurringSnapshot.docs) {
       const recurring = { id: docSnap.id, ...docSnap.data() };
-      const lastExecuted = recurring.lastExecuted?.toDate();
-      const now = new Date();
       
-      let shouldExecute = false;
+      if (!recurring.isActive) continue;
       
-      // Verificar se deve executar baseado na frequência
-      if (!lastExecuted) {
-        // Se nunca foi executada, verificar se a data de criação é anterior ao mês atual
-        const createdAt = recurring.createdAt?.toDate();
-        if (createdAt) {
-          const monthsDiff = (now.getFullYear() - createdAt.getFullYear()) * 12 + (now.getMonth() - createdAt.getMonth());
-          shouldExecute = monthsDiff >= 1;
-        } else {
-          shouldExecute = true;
-        }
-      } else {
-        const monthsDiff = (now.getFullYear() - lastExecuted.getFullYear()) * 12 + (now.getMonth() - lastExecuted.getMonth());
+      const nextExecution = recurring.nextExecution?.toDate();
+      if (!nextExecution) continue;
+      
+      const nextDate = new Date(nextExecution);
+      nextDate.setHours(0, 0, 0, 0);
+      
+      if (nextDate <= today) {
+        console.log(`Executing recurring: ${recurring.description}`);
         
-        switch (recurring.frequency) {
-          case 'monthly':
-            shouldExecute = monthsDiff >= 1;
-            break;
-          case 'weekly':
-            const daysDiff = Math.floor((now - lastExecuted) / (1000 * 60 * 60 * 24));
-            shouldExecute = daysDiff >= 7;
-            break;
-          case 'yearly':
-            shouldExecute = monthsDiff >= 12;
-            break;
-          default:
-            shouldExecute = monthsDiff >= 1;
-        }
-      }
-      
-      if (shouldExecute) {
-        // Criar nova transação
+        // 1. Criar transação
         const newTransaction = {
           amount: recurring.amount,
           description: recurring.description,
@@ -64,23 +42,58 @@ export async function processRecurringTransactions(userId) {
           date: new Date(),
           userId: userId,
           isRecurring: true,
-          recurringId: recurring.id
+          recurringId: recurring.id,
+          balanceId: recurring.balanceId
         };
         
         await addDoc(collection(db, 'users', userId, 'transactions'), newTransaction);
         
-        // Atualizar a data da última execução
+        // 2. Atualizar o balance (se tiver balanceId)
+        if (recurring.balanceId) {
+          const balanceRef = doc(db, 'users', userId, 'balances', recurring.balanceId);
+          const balanceSnap = await getDocs(collection(db, 'users', userId, 'balances'));
+          let currentBalance = 0;
+          balanceSnap.forEach(b => {
+            if (b.id === recurring.balanceId) {
+              currentBalance = b.data().amount;
+            }
+          });
+          
+          const newBalance = recurring.type === 'income' 
+            ? currentBalance + recurring.amount 
+            : currentBalance - recurring.amount;
+          
+          await updateDoc(balanceRef, { balance: newBalance });
+        }
+        
+        // 3. Calcular próxima execução
+        let nextExec;
+        if (recurring.frequency === 'monthly') {
+          nextExec = new Date(nextExecution);
+          nextExec.setMonth(nextExec.getMonth() + 1);
+        } else if (recurring.frequency === 'weekly') {
+          nextExec = new Date(nextExecution);
+          nextExec.setDate(nextExec.getDate() + 7);
+        } else {
+          nextExec = new Date(nextExecution);
+          nextExec.setFullYear(nextExec.getFullYear() + 1);
+        }
+        
+        // 4. Atualizar a recorrente
         const recurringDocRef = doc(db, 'users', userId, 'recurring', recurring.id);
-        await updateDoc(recurringDocRef, { lastExecuted: new Date() });
+        await updateDoc(recurringDocRef, { 
+          lastExecuted: new Date(),
+          nextExecution: nextExec
+        });
         
         newTransactions++;
-        console.log(`Added recurring transaction: ${recurring.description}`);
+        console.log(`Executed: ${recurring.description}, next: ${nextExec}`);
       }
     }
     
     if (newTransactions > 0) {
-      console.log(`Added ${newTransactions} recurring transaction(s)`);
-      showSuccess(`${newTransactions} recurring transaction(s) added!`);
+      console.log(`Executed ${newTransactions} recurring transaction(s)`);
+      showSuccess(`${newTransactions} recurring transaction(s) executed!`);
     }
     
     return newTransactions;
@@ -88,4 +101,55 @@ export async function processRecurringTransactions(userId) {
     console.error("Error processing recurring transactions:", error);
     return 0;
   }
+}
+
+// Função para gerar todas as próximas execuções de uma recorrente
+export function generateFutureExecutions(recurring, limit = 12) {
+  const executions = [];
+  
+  // Garantir que temos uma data de início válida
+  let currentDate;
+  if (recurring.nextExecution) {
+    currentDate = recurring.nextExecution.toDate ? recurring.nextExecution.toDate() : new Date(recurring.nextExecution);
+  } else if (recurring.startDate) {
+    currentDate = recurring.startDate.toDate ? recurring.startDate.toDate() : new Date(recurring.startDate);
+  } else {
+    return executions;
+  }
+  
+  const now = new Date();
+  
+  for (let i = 0; i < limit; i++) {
+    // Só adicionar se a data for futura
+    if (currentDate > now) {
+      executions.push({
+        date: new Date(currentDate),
+        amount: recurring.amount,
+        description: recurring.description,
+        category: recurring.category,
+        type: recurring.type,
+        balanceId: recurring.balanceId,
+        balanceName: recurring.balanceName,
+        isScheduled: true,
+        recurringId: recurring.id,
+        frequency: recurring.frequency
+      });
+    }
+    
+    // Avançar para a próxima data
+    if (recurring.frequency === 'monthly') {
+      currentDate = new Date(currentDate);
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    } else if (recurring.frequency === 'weekly') {
+      currentDate = new Date(currentDate);
+      currentDate.setDate(currentDate.getDate() + 7);
+    } else if (recurring.frequency === 'yearly') {
+      currentDate = new Date(currentDate);
+      currentDate.setFullYear(currentDate.getFullYear() + 1);
+    } else {
+      break;
+    }
+  }
+  
+  return executions;
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { auth, googleProvider } from '../firebase/config';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 import { FcGoogle } from 'react-icons/fc';
@@ -44,7 +45,9 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>LasFinancias</h1>
+        <Link to="/" style={{ textDecoration: 'none' }}>
+          <h1 style={{ cursor: 'pointer' }}>LasFinancias</h1>
+        </Link>
         <h2>{isRegister ? 'Create Account' : 'Sign In'}</h2>
         
         {error && <div className="error">{error}</div>}

@@ -1,3 +1,4 @@
+// BalancesContext.jsx - ADICIONAR A FUNÇÃO loadBalances AO CONTEXTO
 import { createContext, useContext, useState, useEffect } from 'react';
 import { auth, db } from '../firebase/config';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query } from 'firebase/firestore';
@@ -100,6 +101,7 @@ export function BalancesProvider({ children }) {
   return (
     <BalancesContext.Provider value={{
       balances,
+      loadBalances,  // ← ADICIONADO
       addBalance,
       updateBalance,
       deleteBalance,

@@ -21,8 +21,9 @@ import {
   PlusCircle,
   Edit2,
   RefreshCw,
-  Sparkles
-} from 'lucide-react';
+  Sparkles,
+  PiggyBank
+, MessageSquare} from 'lucide-react';
 import './Dashboard.css';
 import { useLocation } from 'react-router-dom';
 import AIChat from '../components/AIChat';
@@ -46,6 +47,7 @@ function Dashboard() {
   const [editingBalance, setEditingBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [fixedExpenses, setFixedExpenses] = useState(0);
   const user = auth.currentUser;
   
   const { balances, addBalance, deleteBalance, updateBalance, getTotalWithBalances } = useBalances();
@@ -75,6 +77,25 @@ function Dashboard() {
         }
       };
       checkRecurring();
+    }
+  }, [user]);
+
+  // Calcular despesas fixas das transações recorrentes
+  useEffect(() => {
+    if (user) {
+      const loadFixedExpenses = async () => {
+        const recurringRef = collection(db, 'users', user.uid, 'recurring');
+        const snapshot = await getDocs(recurringRef);
+        let totalFixed = 0;
+        snapshot.forEach(doc => {
+          const rec = doc.data();
+          if (rec.type === 'expense' && rec.isActive) {
+            totalFixed += rec.amount;
+          }
+        });
+        setFixedExpenses(totalFixed);
+      };
+      loadFixedExpenses();
     }
   }, [user]);
 
@@ -109,17 +130,6 @@ function Dashboard() {
     setLoading(false);
   };
 
-  const setInitialBalanceHandler = () => {
-    const amount = parseFloat(prompt('Enter your current total balance:', initialBalance || '0'));
-    if (!isNaN(amount) && amount !== null) {
-      setInitialBalance(amount);
-      if (user?.uid) {
-        localStorage.setItem(`initialBalance_${user.uid}`, amount);
-      }
-      loadTransactions();
-    }
-  };
-
   const handleAddBalance = async (e) => {
     e.preventDefault();
     if (!newBalanceName || !newBalanceAmount) return;
@@ -127,7 +137,7 @@ function Dashboard() {
     setNewBalanceName('');
     setNewBalanceAmount('');
     setShowBalanceModal(false);
-    showSuccess('Balance created!');
+    showSuccess(`Balance "${newBalanceName}" created!`);
   };
 
   const handleEditBalance = async (e) => {
@@ -168,8 +178,10 @@ function Dashboard() {
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/goals', icon: Target, label: 'Goals' },
-    { path: '/budgets', icon: PieChart, label: 'Budgets' },  // ← mudado
+    { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },  { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
+  
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -226,34 +238,48 @@ function Dashboard() {
             {loading ? (
               <SkeletonStats />
             ) : (
-              <div className="stats-grid stats-grid-4">
-                <div className="stat-card balance">
-                  <Wallet size={24} />
-                  <h3>Total Balance</h3>
-                  <div className={`stat-value ${finalTotal >= 0 ? 'positive' : 'negative'}`}>
-                    {formatCurrency(finalTotal)}
+              <>
+                {/* 4 Stats Cards */}
+                <div className="stats-grid stats-grid-4">
+                  <div className="stat-card balance">
+                    <Wallet size={24} />
+                    <h3>Total Balance</h3>
+                    <div className={`stat-value ${finalTotal >= 0 ? 'positive' : 'negative'}`}>
+                      {formatCurrency(finalTotal)}
+                    </div>
+                  </div>
+                  <div className="stat-card income">
+                    <TrendingUp size={24} />
+                    <h3>Income</h3>
+                    <div className="stat-value positive">{formatCurrency(totalIncome)}</div>
+                  </div>
+                  <div className="stat-card expense">
+                    <TrendingDown size={24} />
+                    <h3>Expenses</h3>
+                    <div className="stat-value negative">{formatCurrency(totalExpense)}</div>
+                  </div>
+                  <div className="stat-card fixed-expenses">
+                    <Receipt size={24} />
+                    <h3>Fixed Expenses</h3>
+                    <div className="stat-value negative">{formatCurrency(fixedExpenses)}</div>
+                    <p className="stat-hint">Monthly recurring expenses</p>
                   </div>
                 </div>
-                <div className="stat-card income">
-                  <TrendingUp size={24} />
-                  <h3>Income</h3>
-                  <div className="stat-value positive">{formatCurrency(totalIncome)}</div>
+
+                {/* AI Assistant Full Width Card */}
+                <div className="ai-full-card" onClick={() => setChatOpen(true)}>
+                  <div className="ai-full-content">
+                    <Sparkles size={32} className="ai-full-icon" />
+                    <div className="ai-full-text">
+                      <h3>AI Assistant</h3>
+                      <p>Ask me anything about your finances</p>
+                      <span className="ai-full-hint">💰 Get personalized financial advice</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="stat-card expense">
-                  <TrendingDown size={24} />
-                  <h3>Expenses</h3>
-                  <div className="stat-value negative">{formatCurrency(totalExpense)}</div>
-                </div>
-                <div className="stat-card ai-card" onClick={() => setChatOpen(true)}>
-                  <Sparkles size={24} />
-                  <h3>AI Assistant</h3>
-                  <div className="stat-value small">Ask me anything</div>
-                  <p className="ai-hint">💰 Get financial advice</p>
-                </div>
-              </div>
+              </>
             )}
 
-            {/* Resto do código igual... */}
             {/* Add Balance Modal */}
             {showBalanceModal && (
               <div className="modal-overlay" onClick={() => setShowBalanceModal(false)}>
@@ -262,7 +288,7 @@ function Dashboard() {
                   <form onSubmit={handleAddBalance}>
                     <input
                       type="text"
-                      placeholder="Name (e.g., Savings, Travel, Emergency)"
+                      placeholder="Name (e.g., Cash, Broker, Savings)"
                       value={newBalanceName}
                       onChange={(e) => setNewBalanceName(e.target.value)}
                       required
@@ -329,11 +355,15 @@ function Dashboard() {
             )}
 
             {/* Custom Balances Section */}
-            {balances.length > 0 && (
-              <div className="quick-actions">
+            <div className="quick-actions">
+              <div className="balances-header">
                 <h3>Your Balances</h3>
-                <div className="balances-list">
-                  {balances.map(balance => (
+              </div>
+              <div className="balances-list">
+                {balances.length === 0 ? (
+                  <p className="empty-balances">No balances yet. Click "New Balance" to create one.</p>
+                ) : (
+                  balances.map(balance => (
                     <div key={balance.id} className="balance-item">
                       <div className="balance-info">
                         <span className="balance-name">{balance.name}</span>
@@ -351,19 +381,15 @@ function Dashboard() {
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  ))
+                )}
               </div>
-            )}
+            </div>
 
             {/* Balance Actions */}
             <div className="quick-actions">
               <h3>Balance Actions</h3>
               <div className="action-buttons balance-actions">
-                <button onClick={setInitialBalanceHandler} className="balance-btn">
-                  <Wallet size={20} />
-                  {initialBalance > 0 ? `Update Balance (${formatCurrency(initialBalance)})` : 'Set Initial Balance'}
-                </button>
                 <button onClick={() => setShowBalanceModal(true)} className="balance-btn new-balance-btn">
                   <PlusCircle size={20} />
                   Create New Balance

@@ -1,0 +1,238 @@
+.feedback-content {
+  padding: 2rem;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.feedback-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.dark-mode .feedback-card {
+  background: #16213e;
+}
+
+.feedback-header-card {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.feedback-header-card svg {
+  color: #667eea;
+  margin-bottom: 1rem;
+}
+
+.feedback-header-card h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.dark-mode .feedback-header-card h2 {
+  color: #e2e8f0;
+}
+
+.feedback-header-card p {
+  color: #718096;
+}
+
+.dark-mode .feedback-header-card p {
+  color: #a0aec0;
+}
+
+/* Type Selector */
+.feedback-type-selector {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.feedback-type-selector button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f1f5f9;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s;
+  color: #4a5568;
+  min-height: 48px;
+}
+
+.dark-mode .feedback-type-selector button {
+  background: #0f3460;
+  color: #e2e8f0;
+}
+
+.feedback-type-selector button.active {
+  background: #eef2ff;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.dark-mode .feedback-type-selector button.active {
+  background: #1e3a8a;
+  border-color: #667eea;
+  color: #a5b4fc;
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #1a202c;
+}
+
+.dark-mode .form-group label {
+  color: #e2e8f0;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.3s;
+  background: white;
+}
+
+.dark-mode .form-group input,
+.dark-mode .form-group textarea {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+}
+
+/* Submit Button */
+.submit-feedback-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+  min-height: 52px;
+}
+
+.submit-feedback-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102,126,234,0.4);
+}
+
+.submit-feedback-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Feedback Note */
+.feedback-note {
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background: #fef9e6;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #b45309;
+}
+
+.dark-mode .feedback-note {
+  background: #2d2a1f;
+  color: #fbbf24;
+}
+
+/* Success Card */
+.feedback-success-card {
+  background: white;
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.dark-mode .feedback-success-card {
+  background: #16213e;
+}
+
+.feedback-success-card svg {
+  color: #48bb78;
+  margin-bottom: 1rem;
+}
+
+.feedback-success-card h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.dark-mode .feedback-success-card h2 {
+  color: #e2e8f0;
+}
+
+.feedback-success-card p {
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.feedback-success-card .small {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .feedback-content {
+    padding: 1rem;
+  }
+  
+  .feedback-card {
+    padding: 1.5rem;
+  }
+  
+  .feedback-type-selector {
+    flex-direction: column;
+  }
+  
+  .feedback-type-selector button {
+    padding: 0.75rem;
+  }
+  
+  .feedback-success-card {
+    padding: 2rem;
+  }
+}

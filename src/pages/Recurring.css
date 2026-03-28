@@ -18,6 +18,12 @@
   justify-content: center;
   gap: 0.5rem;
   margin-bottom: 2rem;
+  transition: all 0.3s;
+}
+
+.add-recurring-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102,126,234,0.4);
 }
 
 .recurring-form {
@@ -25,28 +31,48 @@
   padding: 1.5rem;
   border-radius: 12px;
   margin-bottom: 2rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
-  flex-wrap: wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.dark-mode .recurring-form {
+  background: #16213e;
 }
 
 .recurring-form input,
 .recurring-form select {
-  flex: 1;
-  min-width: 120px;
   padding: 0.75rem;
   border: 2px solid #e2e8f0;
   border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  color: #1a202c;
+}
+
+.dark-mode .recurring-form input,
+.dark-mode .recurring-form select {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.recurring-form input::placeholder {
+  color: #a0aec0;
 }
 
 .recurring-form button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1rem;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s;
 }
 
 .recurring-form button[type="submit"] {
@@ -54,13 +80,136 @@
   color: white;
 }
 
+.recurring-form button[type="submit"]:hover {
+  background: #38a169;
+}
+
 .recurring-form button[type="button"] {
   background: #f56565;
   color: white;
 }
 
+.recurring-form button[type="button"]:hover {
+  background: #e53e3e;
+}
+
+/* Date Picker */
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+.dark-mode .date-picker-wrapper {
+  background: #0f3460;
+}
+
+.date-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1a202c;
+}
+
+.dark-mode .date-input {
+  color: #e2e8f0;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: invert(0.3);
+}
+
+.dark-mode .date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+/* Past Transactions Option */
+.past-transactions-option {
+  grid-column: span 2;
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-top: 0.25rem;
+}
+
+.dark-mode .past-transactions-option {
+  background: #0f3460;
+}
+
+.past-transactions-option .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.past-transactions-option .help-text {
+  font-size: 0.7rem;
+  color: #718096;
+  display: block;
+  margin-left: 1.5rem;
+}
+
+.dark-mode .past-transactions-option .help-text {
+  color: #a0aec0;
+}
+
+/* Active Toggle */
+.active-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-active-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #e2e8f0;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  width: 100%;
+  justify-content: center;
+  color: #4a5568;
+  transition: all 0.3s;
+  min-height: 44px;
+}
+
+.toggle-active-btn.active {
+  background: #48bb78;
+  color: white;
+}
+
+.dark-mode .toggle-active-btn {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark-mode .toggle-active-btn.active {
+  background: #48bb78;
+  color: white;
+}
+
+/* Recurring List */
 .recurring-list h3 {
   margin-bottom: 1rem;
+  color: #1a202c;
+}
+
+.dark-mode .recurring-list h3 {
+  color: #e2e8f0;
 }
 
 .recurring-card {
@@ -73,6 +222,11 @@
   align-items: center;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   border-left: 4px solid #48bb78;
+  transition: all 0.3s;
+}
+
+.dark-mode .recurring-card {
+  background: #16213e;
 }
 
 .recurring-card.income {
@@ -83,13 +237,23 @@
   border-left-color: #f56565;
 }
 
+.recurring-card.inactive {
+  opacity: 0.6;
+  filter: grayscale(0.2);
+}
+
 .recurring-info {
   flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .recurring-info strong {
   display: block;
   margin-bottom: 0.25rem;
+  width: 100%;
 }
 
 .recurring-info span {
@@ -98,12 +262,37 @@
   margin-right: 0.5rem;
 }
 
-.frequency-badge {
+.dark-mode .recurring-info span {
+  color: #a0aec0;
+}
+
+.frequency-badge,
+.balance-badge {
   background: #e2e8f0;
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 0.7rem;
   text-transform: capitalize;
+  display: inline-block;
+}
+
+.balance-badge {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.past-badge {
+  background: #fed7d7;
+  color: #c53030;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  display: inline-block;
+}
+
+.next-date {
+  font-size: 0.7rem;
+  color: #718096;
 }
 
 .recurring-amount {
@@ -113,21 +302,109 @@
   gap: 0.75rem;
 }
 
+.toggle-btn,
+.edit-btn,
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.toggle-btn {
+  color: #667eea;
+}
+
+.edit-btn {
+  color: #4299e1;
+}
+
+.delete-btn {
+  color: #f56565;
+}
+
+.toggle-btn:hover,
+.edit-btn:hover,
+.delete-btn:hover {
+  transform: scale(1.1);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+}
+
+.empty-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.empty-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .recurring-form {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .recurring-content {
     padding: 1rem;
   }
+  
   .recurring-form {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
+  
   .recurring-form input,
   .recurring-form select,
   .recurring-form button {
     width: 100%;
   }
+  
+  .past-transactions-option {
+    grid-column: span 1;
+  }
+  
   .recurring-card {
     flex-direction: column;
     text-align: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+  }
+  
+  .recurring-info {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .recurring-amount {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .toggle-btn,
+  .edit-btn,
+  .delete-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query } from 'firebase/firestore';
 import { useCurrency } from '../context/CurrencyContext';
-import { showSuccess, showError } from '../components/Toast';
+import { useBalances } from '../context/BalancesContext';
+import { showSuccess, showError } from '../components/ToastWithUndo';
 import { motion } from 'framer-motion';
 import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
-  PlusCircle, Trash2, Edit2, Save, XCircle, RefreshCw,PieChart
-} from 'lucide-react';
+  PlusCircle, Trash2, Edit2, Save, XCircle, RefreshCw, Calendar, ToggleLeft, ToggleRight, PieChart, PiggyBank
+, MessageSquare} from 'lucide-react';
 import './Recurring.css';
 
 function Recurring() {
@@ -18,15 +19,21 @@ function Recurring() {
   const [category, setCategory] = useState('');
   const [type, setType] = useState('expense');
   const [frequency, setFrequency] = useState('monthly');
+  const [startDate, setStartDate] = useState(new Date());
+  const [selectedBalance, setSelectedBalance] = useState('');
+  const [isActive, setIsActive] = useState(true);
+  const [createPastTransactions, setCreatePastTransactions] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
   const user = auth.currentUser;
 
   const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
   const frequencies = ['monthly', 'weekly', 'yearly'];
 
   const { formatCurrency } = useCurrency();
+  const { balances } = useBalances();
 
   useEffect(() => {
     if (user) loadRecurring();
@@ -42,24 +49,129 @@ function Recurring() {
     setRecurring(data);
   };
 
+  const calculateFirstExecution = (frequency, startDateValue) => {
+    const now = new Date();
+    const start = new Date(startDateValue);
+    let first = new Date(start);
+    let maxIterations = 100;
+    
+    while (first <= now && maxIterations-- > 0) {
+      if (frequency === 'monthly') {
+        first.setMonth(first.getMonth() + 1);
+      } else if (frequency === 'weekly') {
+        first.setDate(first.getDate() + 7);
+      } else if (frequency === 'yearly') {
+        first.setFullYear(first.getFullYear() + 1);
+      }
+    }
+    
+    return first;
+  };
+
   const addRecurring = async (e) => {
     e.preventDefault();
-    if (!description || !amount || !category) return;
+    if (!description || !amount || !category || !selectedBalance) {
+      showError('Please fill all fields');
+      return;
+    }
 
-    await addDoc(collection(db, 'users', user.uid, 'recurring'), {
+    const now = new Date();
+    const start = new Date(startDate);
+    let transactionsCreated = 0;
+    let updatedBalance = null;
+
+    if (createPastTransactions && start <= now) {
+      let currentDate = new Date(start);
+      const balance = balances.find(b => b.id === selectedBalance);
+      let currentBalance = balance?.amount || 0;
+      const amountValue = parseFloat(amount);
+
+      while (currentDate <= now) {
+        const pastTransaction = {
+          amount: amountValue,
+          description: `${description}`,
+          category,
+          type,
+          date: currentDate,
+          userId: user.uid,
+          balanceId: selectedBalance,
+          isRecurring: true,
+          recurringCreated: true
+        };
+        
+        await addDoc(collection(db, 'users', user.uid, 'transactions'), pastTransaction);
+        
+        if (type === 'income') {
+          currentBalance += amountValue;
+        } else {
+          currentBalance -= amountValue;
+        }
+        
+        transactionsCreated++;
+        
+        if (frequency === 'monthly') {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        } else if (frequency === 'weekly') {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else {
+          currentDate.setFullYear(currentDate.getFullYear() + 1);
+        }
+      }
+      
+      if (balance) {
+        const balanceRef = doc(db, 'users', user.uid, 'balances', selectedBalance);
+        await updateDoc(balanceRef, { amount: currentBalance });
+        updatedBalance = currentBalance;
+      }
+    }
+
+    const newRecurring = {
       description,
       amount: parseFloat(amount),
       category,
       type,
       frequency,
+      startDate: startDate,
+      balanceId: selectedBalance,
+      balanceName: balances.find(b => b.id === selectedBalance)?.name,
+      isActive: true,
       createdAt: new Date(),
-      lastExecuted: null
-    });
+      lastExecuted: createPastTransactions ? now : null,
+      nextExecution: calculateFirstExecution(frequency, startDate),
+      hasPastTransactions: createPastTransactions
+    };
+
+    await addDoc(collection(db, 'users', user.uid, 'recurring'), newRecurring);
+    
+    if (transactionsCreated > 0) {
+      showSuccess(`${transactionsCreated} past transaction(s) created and balance updated!`);
+    }
     showSuccess('Recurring transaction added!');
-    setDescription('');
-    setAmount('');
-    setCategory('');
-    setShowForm(false);
+    
+    resetForm();
+    loadRecurring();
+  };
+
+  const updateRecurring = async (e) => {
+    e.preventDefault();
+    if (!editing || !description || !amount || !category || !selectedBalance) return;
+
+    const recurringRef = doc(db, 'users', user.uid, 'recurring', editing.id);
+    await updateDoc(recurringRef, {
+      description,
+      amount: parseFloat(amount),
+      category,
+      type,
+      frequency,
+      startDate: startDate,
+      balanceId: selectedBalance,
+      balanceName: balances.find(b => b.id === selectedBalance)?.name,
+      isActive,
+      nextExecution: calculateFirstExecution(frequency, startDate)
+    });
+    showSuccess('Recurring transaction updated!');
+    setEditing(null);
+    resetForm();
     loadRecurring();
   };
 
@@ -71,6 +183,52 @@ function Recurring() {
     }
   };
 
+  const toggleActive = async (item) => {
+    const recurringRef = doc(db, 'users', user.uid, 'recurring', item.id);
+    await updateDoc(recurringRef, { isActive: !item.isActive });
+    showSuccess(item.isActive ? 'Disabled' : 'Enabled');
+    loadRecurring();
+  };
+
+  const resetForm = () => {
+    setDescription('');
+    setAmount('');
+    setCategory('');
+    setType('expense');
+    setFrequency('monthly');
+    setStartDate(new Date());
+    setSelectedBalance('');
+    setIsActive(true);
+    setCreatePastTransactions(false);
+    setShowForm(false);
+    setEditing(null);
+    setUseCustomCategory(false);
+  };
+
+  const startEdit = (item) => {
+    setEditing(item);
+    setDescription(item.description);
+    setAmount(item.amount.toString());
+    setCategory(item.category);
+    setType(item.type);
+    setFrequency(item.frequency);
+    setStartDate(item.startDate?.toDate ? item.startDate.toDate() : new Date(item.startDate));
+    setSelectedBalance(item.balanceId);
+    setIsActive(item.isActive);
+    setCreatePastTransactions(false);
+    setShowForm(true);
+  };
+
+  const handleLogout = async () => {
+    await auth.signOut();
+  };
+
+  const formatDate = (date) => {
+    if (!date) return 'Not scheduled';
+    const d = date.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleDateString();
+  };
+
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
@@ -78,12 +236,10 @@ function Recurring() {
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
-    { path: '/settings', icon: Settings, label: 'Settings' },  // ← SEMPRE ÚLTIMO
+    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },  { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
+  
+    { path: '/settings', icon: Settings, label: 'Settings' },
   ];
-
-  const handleLogout = async () => {
-    await auth.signOut();
-  };
 
   return (
     <div className="app-layout">
@@ -128,25 +284,66 @@ function Recurring() {
               <PlusCircle size={20} /> Add Recurring Transaction
             </button>
           ) : (
-            <form className="recurring-form" onSubmit={addRecurring}>
-              <input
-                type="text"
-                placeholder="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                required
-              />
-              <input
-                type="number"
-                placeholder="Amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-              />
-              <select value={category} onChange={(e) => setCategory(e.target.value)} required>
-                <option value="">Category</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+            <motion.form initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="recurring-form" onSubmit={editing ? updateRecurring : addRecurring}>
+              <input type="text" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} required />
+              <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+              {useCustomCategory ? (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter custom category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseCustomCategory(false);
+                      setCategory('');
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#e2e8f0',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ✕ Use Select
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} required style={{ flex: 1 }}>
+                    <option value="">Category</option>
+                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setUseCustomCategory(true);
+                      setCategory('');
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#fff5e6',
+                      border: '2px solid #f6ad55',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#dd6b20'
+                    }}
+                  >
+                    ✏️ Custom
+                  </button>
+                </div>
+              )}
               <select value={type} onChange={(e) => setType(e.target.value)}>
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
@@ -154,9 +351,46 @@ function Recurring() {
               <select value={frequency} onChange={(e) => setFrequency(e.target.value)}>
                 {frequencies.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
-              <button type="submit"><Save size={16} /> Save</button>
-              <button type="button" onClick={() => setShowForm(false)}><XCircle size={16} /> Cancel</button>
-            </form>
+
+              <div className="date-picker-wrapper">
+                <Calendar size={18} />
+                <input
+                  type="date"
+                  value={startDate.toISOString().split('T')[0]}
+                  onChange={(e) => setStartDate(new Date(e.target.value))}
+                  className="date-input"
+                />
+              </div>
+
+              <select value={selectedBalance} onChange={(e) => setSelectedBalance(e.target.value)} required>
+                <option value="">Select Balance</option>
+                {balances.map(b => <option key={b.id} value={b.id}>{b.name} ({formatCurrency(b.amount)})</option>)}
+              </select>
+
+              <div className="past-transactions-option">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={createPastTransactions}
+                    onChange={(e) => setCreatePastTransactions(e.target.checked)}
+                  />
+                  <span>📅 Create missed transactions since start date</span>
+                </label>
+                <small className="help-text">
+                  This will create all past transactions from the start date until today and update your balance.
+                </small>
+              </div>
+
+              <div className="active-toggle">
+                <button type="button" onClick={() => setIsActive(!isActive)} className={`toggle-active-btn ${isActive ? 'active' : ''}`}>
+                  {isActive ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
+                  {isActive ? 'Active' : 'Inactive'}
+                </button>
+              </div>
+
+              <button type="submit"><Save size={16} /> {editing ? 'Update' : 'Save'}</button>
+              <button type="button" onClick={resetForm}><XCircle size={16} /> Cancel</button>
+            </motion.form>
           )}
 
           <div className="recurring-list">
@@ -165,23 +399,26 @@ function Recurring() {
               <div className="empty-state">
                 <RefreshCw size={48} />
                 <p>No recurring transactions yet.</p>
-                <button className="empty-btn" onClick={() => setShowForm(true)}>
-                  Add your first recurring transaction
-                </button>
+                <button className="empty-btn" onClick={() => setShowForm(true)}>Add your first recurring transaction</button>
               </div>
             ) : (
               recurring.map((item) => (
-                <motion.div key={item.id} className={`recurring-card ${item.type}`}>
+                <motion.div key={item.id} className={`recurring-card ${item.type} ${!item.isActive ? 'inactive' : ''}`}>
                   <div className="recurring-info">
                     <strong>{item.description}</strong>
                     <span>{item.category}</span>
                     <span className="frequency-badge">{item.frequency}</span>
+                    <span className="balance-badge">{item.balanceName || 'No balance'}</span>
+                    <span className="next-date">Next: {formatDate(item.nextExecution)}</span>
+                    {item.hasPastTransactions && <span className="past-badge">📜 Past created</span>}
                   </div>
                   <div className="recurring-amount">
                     {formatCurrency(item.amount)}
-                    <button onClick={() => deleteRecurring(item.id)} className="delete-btn">
-                      <Trash2 size={16} />
+                    <button onClick={() => toggleActive(item)} className="toggle-btn" title={item.isActive ? 'Disable' : 'Enable'}>
+                      {item.isActive ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
                     </button>
+                    <button onClick={() => startEdit(item)} className="edit-btn"><Edit2 size={16} /></button>
+                    <button onClick={() => deleteRecurring(item.id)} className="delete-btn"><Trash2 size={16} /></button>
                   </div>
                 </motion.div>
               ))

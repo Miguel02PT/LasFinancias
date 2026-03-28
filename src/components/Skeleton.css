@@ -79,3 +79,18 @@
     opacity: 0.5;
   }
 }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .skeleton-stats-grid {
+    gap: 1rem;
+  }
+  
+  .skeleton-stat {
+    height: 100px;
+  }
+  
+  .skeleton-item {
+    height: 60px;
+  }
+}

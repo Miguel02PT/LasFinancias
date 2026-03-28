@@ -9,6 +9,11 @@
   padding: 2rem;
   border-radius: 15px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+.settings-card:last-child {
+  margin-bottom: 0;
 }
 
 .settings-card h2 {
@@ -40,29 +45,35 @@
 }
 
 .setting-item select {
-  padding: 0.5rem;
+  padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: white;
   cursor: pointer;
+  color: #1a202c;
+  font-size: 0.9rem;
+  min-width: 120px;
 }
 
 .theme-toggle {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .theme-toggle button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.25rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: white;
   cursor: pointer;
   transition: all 0.3s;
   color: #333;
+  font-size: 0.9rem;
+  min-height: 48px;
 }
 
 .theme-toggle button.active {
@@ -71,40 +82,256 @@
   border-color: #667eea;
 }
 
-.account-info p {
+.account-info p,
+.about-info p {
   margin-bottom: 0.5rem;
   color: #4a5568;
 }
 
-.about-info p {
-  margin-bottom: 0.25rem;
-  color: #4a5568;
+.account-info p:last-child,
+.about-info p:last-child {
+  margin-bottom: 0;
 }
 
-@media (max-width: 768px) {
-  .settings-content {
-    padding: 1rem;
-  }
-  
-  .settings-card {
-    padding: 1rem;
-  }
+/* Card Headers */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
 }
 
-.setting-item select {
-  padding: 0.5rem;
+.card-header h2 {
+  margin: 0;
+  color: #1a202c;
+  font-size: 1.3rem;
+}
+
+.edit-toggle-btn {
+  padding: 0.5rem 1rem;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s;
+  min-width: 120px;
+}
+
+.edit-toggle-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Settings Forms */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #1a202c;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background: white;
-  cursor: pointer;
-  color: #1a202c;  /* ← adiciona esta linha */
+  font-size: 0.9rem;
+  transition: all 0.3s;
 }
 
-/* Para dark mode no select */
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input input {
+  flex: 1;
+  padding-right: 2.5rem;
+}
+
+.pwd-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  transition: all 0.2s;
+}
+
+.pwd-toggle:hover {
+  color: #667eea;
+}
+
+.save-btn {
+  padding: 0.75rem 1.5rem;
+  background: #48bb78;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #38a169;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Messages */
+.error-message {
+  padding: 0.75rem 1rem;
+  background: #fed7d7;
+  color: #c53030;
+  border: 1px solid #fc8181;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.success-message {
+  padding: 0.75rem 1rem;
+  background: #c6f6d5;
+  color: #22543d;
+  border: 1px solid #9ae6b4;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+/* Profile Display */
+.profile-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.profile-display p {
+  margin: 0;
+  color: #4a5568;
+  font-size: 0.95rem;
+}
+
+.profile-display strong {
+  color: #1a202c;
+  margin-right: 0.5rem;
+}
+
+/* Security Display */
+.security-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.security-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #4a5568;
+  font-size: 0.95rem;
+}
+
+.security-item svg {
+  color: #667eea;
+}
+
+/* Dark mode */
+.dark-mode .settings-card h2 {
+  color: #e2e8f0;
+  border-bottom-color: #2d3748;
+}
+
+.dark-mode .settings-card {
+  background: #16213e;
+  margin-bottom: 1.5rem;
+}
+
+.dark-mode .setting-item {
+  border-bottom-color: #2d3748;
+}
+
+.dark-mode .setting-label {
+  color: #a0aec0;
+}
+
 .dark-mode .setting-item select {
   background: #0f3460;
   color: #e2e8f0;
   border-color: #2d3748;
+}
+
+.dark-mode .card-header {
+  border-bottom-color: #2d3748;
+}
+
+.dark-mode .card-header h2 {
+  color: #e2e8f0;
+}
+
+.dark-mode .form-group label {
+  color: #e2e8f0;
+}
+
+.dark-mode .form-group input {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.dark-mode .form-group input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.dark-mode .pwd-toggle {
+  color: #a0aec0;
+}
+
+.dark-mode .pwd-toggle:hover {
+  color: #667eea;
 }
 
 .dark-mode .theme-toggle button {
@@ -116,4 +343,56 @@
 .dark-mode .theme-toggle button.active {
   background: #ffd700;
   color: #1a1a2e;
+  border-color: #ffd700;
+}
+
+.dark-mode .account-info p,
+.dark-mode .about-info p {
+  color: #e2e8f0;
+}
+
+.dark-mode .profile-display {
+  background: #0f3460;
+}
+
+.dark-mode .profile-display p {
+  color: #a0aec0;
+}
+
+.dark-mode .profile-display strong {
+  color: #e2e8f0;
+}
+
+.dark-mode .security-display {
+  background: #0f3460;
+}
+
+.dark-mode .security-item {
+  color: #a0aec0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .settings-content {
+    padding: 1rem;
+  }
+  
+  .settings-card {
+    padding: 1.25rem;
+  }
+  
+  .setting-item select {
+    width: 100%;
+  }
+  
+  .theme-toggle {
+    width: 100%;
+  }
+  
+  .theme-toggle button {
+    flex: 1;
+    justify-content: center;
+  }
 }

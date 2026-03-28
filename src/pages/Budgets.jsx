@@ -7,10 +7,11 @@ import { showSuccess, showError } from '../components/Toast';
 import { motion } from 'framer-motion';
 import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
-  PlusCircle, Trash2, Edit2, Save, XCircle, AlertCircle,PieChart
+  PlusCircle, Trash2, Edit2 , Save,MessageSquare , XCircle, AlertCircle,PieChart,PiggyBank
 } from 'lucide-react';
 import './Budgets.css';
 import { RefreshCw } from 'lucide-react';
+
 
 function Budgets() {
   const [budgets, setBudgets] = useState([]);
@@ -20,6 +21,7 @@ function Budgets() {
   const [editingBudget, setEditingBudget] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
   const user = auth.currentUser;
 
   const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other'];
@@ -70,6 +72,7 @@ function Budgets() {
     showSuccess('Budget created!');
     setCategory('');
     setLimit('');
+    setUseCustomCategory(false);
     setShowForm(false);
     loadBudgets();
   };
@@ -87,6 +90,7 @@ function Budgets() {
     setEditingBudget(null);
     setCategory('');
     setLimit('');
+    setUseCustomCategory(false);
     setShowForm(false);
     loadBudgets();
   };
@@ -103,6 +107,7 @@ function Budgets() {
     setEditingBudget(budget);
     setCategory(budget.category);
     setLimit(budget.limit.toString());
+    setUseCustomCategory(false);
     setShowForm(true);
   };
 
@@ -110,6 +115,7 @@ function Budgets() {
     setEditingBudget(null);
     setCategory('');
     setLimit('');
+    setUseCustomCategory(false);
     setShowForm(false);
   };
 
@@ -130,6 +136,8 @@ function Budgets() {
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/budgets', icon: PieChart, label: 'Budgets' },  // ← mudado
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
+    { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },  // ← SEMPRE ÚLTIMO
   ];
 
@@ -186,12 +194,65 @@ function Budgets() {
               className="budget-form" 
               onSubmit={editingBudget ? updateBudget : addBudget}
             >
-              <select value={category} onChange={(e) => setCategory(e.target.value)} required>
-                <option value="">Select Category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+              {useCustomCategory ? (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter custom category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseCustomCategory(false);
+                      setCategory('');
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#e2e8f0',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ✕ Use Select
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} required style={{ flex: 1 }}>
+                    <option value="">Select Category</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setUseCustomCategory(true);
+                      setCategory('');
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#fff5e6',
+                      border: '2px solid #f6ad55',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      color: '#dd6b20'
+                    }}
+                  >
+                    ✏️ Custom
+                  </button>
+                </div>
+              )}
               <input
                 type="number"
                 placeholder="Monthly Limit"

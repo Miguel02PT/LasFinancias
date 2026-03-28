@@ -1,0 +1,542 @@
+.savings-rules-content {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.info-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 15px;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.info-card h3 {
+  margin: 0.5rem 0;
+}
+
+.info-card p {
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.add-rule-btn {
+  width: 100%;
+  padding: 1rem;
+  background: white;
+  color: #667eea;
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  transition: all 0.3s;
+}
+
+.add-rule-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Rule Form */
+.rule-form {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.dark-mode .rule-form {
+  background: #16213e;
+}
+
+.rule-form input,
+.rule-form select {
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.dark-mode .rule-form input,
+.dark-mode .rule-form select {
+  background: #0f3460;
+  color: #e2e8f0;
+  border-color: #2d3748;
+}
+
+.rule-form button {
+  padding: 0.75rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.rule-form button[type="submit"] {
+  background: #48bb78;
+  color: white;
+}
+
+.rule-form button[type="submit"]:hover {
+  background: #38a169;
+}
+
+.rule-form button[type="button"] {
+  background: #f56565;
+  color: white;
+}
+
+.rule-form button[type="button"]:hover {
+  background: #e53e3e;
+}
+
+/* Amount Input */
+.amount-type-selector {
+  display: flex;
+  align-items: center;
+}
+
+.amount-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.amount-input input {
+  flex: 1;
+  padding-right: 2rem;
+}
+
+.amount-symbol {
+  position: absolute;
+  right: 12px;
+  font-weight: bold;
+  color: #4a5568;
+}
+
+.dark-mode .amount-symbol {
+  color: #e2e8f0;
+}
+
+/* Date Picker */
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+.dark-mode .date-picker-wrapper {
+  background: #0f3460;
+}
+
+.date-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #1a202c;
+}
+
+.dark-mode .date-input {
+  color: #e2e8f0;
+}
+
+.date-hint {
+  font-size: 0.7rem;
+  color: #718096;
+}
+
+/* Allocations Section */
+.allocations-section {
+  grid-column: span 2;
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+}
+
+.dark-mode .allocations-section {
+  background: #0f3460;
+}
+
+.allocations-section h4 {
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  color: #1a202c;
+}
+
+.dark-mode .allocations-section h4 {
+  color: #e2e8f0;
+}
+
+.allocation-hint {
+  font-size: 0.7rem;
+  color: #718096;
+  margin-bottom: 0.75rem;
+}
+
+.dark-mode .allocation-hint {
+  color: #a0aec0;
+}
+
+.allocation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.dark-mode .allocation-item {
+  background: #16213e;
+}
+
+.allocation-item span:first-child {
+  font-weight: 500;
+  color: #1a202c;
+}
+
+.dark-mode .allocation-item span:first-child {
+  color: #e2e8f0;
+}
+
+.allocation-item span:last-child {
+  color: #667eea;
+  font-weight: 600;
+}
+
+.remove-allocation {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #f56565;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.remove-allocation:hover {
+  background: rgba(245, 101, 101, 0.1);
+  transform: scale(1.1);
+}
+
+.add-allocation-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: none;
+  border: 1px dashed #667eea;
+  border-radius: 8px;
+  color: #667eea;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  transition: all 0.3s;
+}
+
+.add-allocation-btn:hover {
+  background: rgba(102,126,234,0.1);
+  transform: translateY(-2px);
+}
+
+/* Badges */
+.amount-badge {
+  background: #c6f6d5;
+  color: #276749;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.target-badge {
+  background: #e2e8f0;
+  color: #1a202c;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.dark-mode .target-badge {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.date-badge {
+  background: #e2e8f0;
+  color: #1a202c;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.dark-mode .date-badge {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  display: inline-block;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.active {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.status-badge.inactive {
+  background: #fed7d7;
+  color: #c53030;
+}
+
+.allocations-badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.alloc-tag {
+  background: #e2e8f0;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  color: #4a5568;
+}
+
+.dark-mode .alloc-tag {
+  background: #2d3748;
+  color: #a0aec0;
+}
+
+/* Rules List */
+.rules-list {
+  margin-top: 2rem;
+}
+
+.rules-list h3 {
+  margin: 2rem 0 1.5rem 0;
+  color: #1a202c;
+  font-size: 1.3rem;
+  font-weight: 600;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.dark-mode .rules-list h3 {
+  color: #e2e8f0;
+  border-bottom-color: #2d3748;
+}
+
+.rule-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-left: 4px solid #48bb78;
+  gap: 1rem;
+}
+
+.dark-mode .rule-card {
+  background: #16213e;
+}
+
+.rule-card.inactive {
+  opacity: 0.6;
+  border-left-color: #a0aec0;
+}
+
+.rule-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rule-info strong {
+  display: block;
+  color: #1a202c;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+}
+
+.dark-mode .rule-info strong {
+  color: #e2e8f0;
+}
+
+.rule-info > span {
+  font-size: 0.8rem;
+  color: #718096;
+  display: block;
+}
+
+.dark-mode .rule-info > span {
+  color: #a0aec0;
+}
+
+.rule-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+.rule-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.toggle-rule-btn {
+  background: none;
+  border: 1px solid #667eea;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: #667eea;
+  transition: all 0.3s;
+  min-width: 70px;
+  white-space: nowrap;
+}
+
+.toggle-rule-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+.edit-btn,
+.delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.edit-btn {
+  color: #4299e1;
+}
+
+.delete-btn {
+  color: #f56565;
+}
+
+.edit-btn:hover,
+.delete-btn:hover {
+  transform: scale(1.1);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  color: #a0aec0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .savings-rules-content {
+    padding: 1rem;
+  }
+  
+  .rule-form {
+    grid-template-columns: 1fr;
+  }
+  
+  .allocations-section {
+    grid-column: span 1;
+  }
+  
+  .rule-card {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  
+  .rule-info {
+    text-align: center;
+  }
+  
+  .rule-actions {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .date-picker-wrapper {
+    flex-wrap: wrap;
+  }
+  
+  .date-hint {
+    width: 100%;
+    margin-left: 1.5rem;
+  }
+  
+  /* Touch targets */
+  .toggle-rule-btn {
+    min-width: 80px;
+    padding: 0.6rem 1rem;
+  }
+  
+  .edit-btn,
+  .delete-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
