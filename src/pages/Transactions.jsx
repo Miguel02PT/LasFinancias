@@ -37,6 +37,8 @@ import { useSavingsRules } from '../context/SavingsRulesContext';
 import { useBalances } from '../context/BalancesContext';
 import { InvoiceScanner } from '../components/InvoiceScanner';
 import { checkInvoiceScannerAccess } from '../services/subscriptionService';
+import { useUserRole } from '../hooks/useUserRole';
+
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -59,6 +61,7 @@ function Transactions() {
   const [useCustomCategory, setUseCustomCategory] = useState(false);
   const [invoiceScannerOpen, setInvoiceScannerOpen] = useState(false);
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid);
 
   const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
 
@@ -165,7 +168,7 @@ function Transactions() {
       }
     } catch (error) {
       console.error('Erro ao verificar acesso:', error);
-      showError('Erro ao verificar acesso ao Invoice Scanner');
+      showError('Could not verify invoice scanner access');
     }
   };
 
@@ -300,7 +303,9 @@ function Transactions() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
   ];
+  
 
   return (
     <div className="app-layout">

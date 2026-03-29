@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { useCurrency } from '../context/CurrencyContext';
+import { useUserRole } from '../hooks/useUserRole';
 import { Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings as SettingsIcon, LogOut, Moon, Sun, DollarSign, RefreshCw,PieChart, PiggyBank , MessageSquare, Eye, EyeOff, Lock, User as UserIcon, Crown, Zap, Shield} from 'lucide-react';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getSubscriptionDetails } from '../services/subscriptionService';
-import { doc, getDoc } from 'firebase/firestore';
 import './Settings.css';
 
 function Settings() {
@@ -16,6 +16,7 @@ function Settings() {
     return saved === 'dark' ? 'dark' : 'light';
   });
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid);
 
   // Password Change Form States
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -40,7 +41,6 @@ function Settings() {
   // Subscription and Admin States
   const [subscription, setSubscription] = useState(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   const currencies = ['USD', 'EUR', 'GBP', 'BRL'];
 
@@ -72,12 +72,6 @@ function Settings() {
         // Buscar dados de subscription
         const subData = await getSubscriptionDetails(user.uid);
         setSubscription(subData);
-
-        // Verificar se é admin
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setIsAdmin(userDoc.data()?.role === 'admin' || false);
-        }
       } catch (error) {
         console.error('Erro ao buscar dados de subscription:', error);
       } finally {
@@ -181,22 +175,29 @@ function Settings() {
   const getSubscriptionInfo = () => {
     if (!subscription) return null;
 
-    const planName = subscription.plan?.toUpperCase() || 'FREE';
+    const raw = String(subscription.plan || 'free').toLowerCase();
+    let planName = 'FREE';
+    if (raw === 'pro') planName = 'PRO';
+    else if (raw === 'fulltime' || raw === 'full-time') planName = 'PREMIUM';
+
     const badgeColors = {
-      free: { bg: '#f0f0f0', text: '#666', icon: null },
-      pro: { bg: '#667eea', text: 'white', icon: '⚡' },
-      fulltime: { bg: '#22c55e', text: 'white', icon: '👑' },
-      'full-time': { bg: '#22c55e', text: 'white', icon: '👑' }
+      free: { bg: '#f1f5f9', text: '#475569' },
+      pro: { bg: '#667eea', text: '#fff' },
+      fulltime: { bg: '#059669', text: '#fff' },
+      'full-time': { bg: '#059669', text: '#fff' }
     };
 
-    const color = badgeColors[subscription.plan?.toLowerCase()] || badgeColors.free;
-    
+    const color = badgeColors[raw] || badgeColors.free;
+
     return {
       plan: planName,
       status: subscription.status || 'active',
       invoiceScansUsed: subscription.invoiceScansUsed || 0,
-      invoiceScansLimit: subscription.invoiceScansLimit || -1,
-      color: color
+      invoiceScansLimit: subscription.invoiceScansLimit ?? -1,
+      invoiceScansPeriod: subscription.invoiceScansPeriod || 'none',
+      aiChatDailyLimit: subscription.aiChatDailyLimit ?? 0,
+      aiChatUsedToday: subscription.aiChatUsedToday ?? 0,
+      color
     };
   };
 
@@ -210,8 +211,8 @@ function Settings() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
-
-];
+    ...(isAdmin ? [{ path: '/admin', icon: SettingsIcon, label: 'Admin' }] : [])
+  ];
 
   return (
     <div className="app-layout">
@@ -397,10 +398,135 @@ function Settings() {
             )}
           </div>
 
-          {/* PREFERENCES SECTION - TERCEIRO */}
+          <div className="settings-card settings-card--plan">
+            <div className="plan-card__header">
+              <div>
+                <p className="plan-card__eyebrow">Billing</p>
+                <h2 className="plan-card__title">Your plan</h2>
+                <p className="plan-card__subtitle">Usage and upgrades</p>
+              </div>
+            </div>
+
+            {subscriptionLoading ? (
+              <p className="plan-card__loading">Loading plan…</p>
+            ) : (
+              <div className="plan-card__body">
+                {(() => {
+                  const planData = getSubscriptionInfo() || {
+                    plan: 'FREE',
+                    status: 'active',
+                    invoiceScansUsed: 0,
+                    invoiceScansLimit: -1,
+                    invoiceScansPeriod: 'none',
+                    aiChatDailyLimit: 0,
+                    aiChatUsedToday: 0,
+                    color: { bg: '#f1f5f9', text: '#475569' }
+                  };
+                  const isFree = planData.plan === 'FREE';
+                  const isPro = planData.plan === 'PRO';
+                  const isPremium = planData.plan === 'PREMIUM';
+                  const limit = planData.invoiceScansLimit;
+                  const used = planData.invoiceScansUsed;
+                  const pct =
+                    limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+                  const aiLimit = planData.aiChatDailyLimit;
+                  const aiUsed = planData.aiChatUsedToday;
+                  const aiPct =
+                    aiLimit > 0 ? Math.min(100, Math.round((aiUsed / aiLimit) * 100)) : 0;
+
+                  return (
+                    <>
+                      <div className="plan-card__row">
+                        <div
+                          className={`plan-badge plan-badge--${isFree ? 'free' : isPro ? 'pro' : 'full'}`}
+                        >
+                          {isPro && <Zap size={18} strokeWidth={2.2} />}
+                          {isPremium && <Crown size={18} strokeWidth={2.2} />}
+                          {isFree && <span className="plan-badge__dot" aria-hidden />}
+                          <span>{planData.plan}</span>
+                        </div>
+                        {!isFree && planData.status === 'active' && (
+                          <span className="plan-status plan-status--live">
+                            <span className="plan-status__dot" />
+                            Active
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="plan-card__panel">
+                        {isFree && (
+                          <ul className="plan-card__list">
+                            <li>Transactions, budgets, and reports</li>
+                            <li>No invoice photo / upload — upgrade to Pro or Premium</li>
+                            <li>No AI chat — upgrade to Pro or Premium</li>
+                          </ul>
+                        )}
+                        {isPro && (
+                          <>
+                            <p className="plan-card__line">
+                              <strong>Invoice capture:</strong> {used} / {limit === -1 ? '∞' : limit} today (resets
+                              daily)
+                            </p>
+                            {limit > 0 && (
+                              <div className="plan-scan__meter" aria-hidden>
+                                <div
+                                  className="plan-scan__fill"
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            )}
+                            <p className="plan-card__line">
+                              <strong>AI chat:</strong> {aiUsed} / {aiLimit} messages today
+                            </p>
+                            {aiLimit > 0 && (
+                              <div className="plan-scan__meter plan-scan__meter--ai" aria-hidden>
+                                <div
+                                  className="plan-scan__fill plan-scan__fill--ai"
+                                  style={{ width: `${aiPct}%` }}
+                                />
+                              </div>
+                            )}
+                            <p className="plan-card__muted">Insights on dashboard included</p>
+                          </>
+                        )}
+                        {isPremium && (
+                          <ul className="plan-card__list">
+                            <li>Unlimited invoice scans</li>
+                            <li>Unlimited AI chat</li>
+                            <li>Savings rules, automation, and full analytics</li>
+                          </ul>
+                        )}
+                      </div>
+
+                      <div className="plan-card__actions">
+                        {isFree && (
+                          <Link to="/pricing" className="btn-plan btn-plan--primary">
+                            View plans & upgrade
+                          </Link>
+                        )}
+                        {(isPro || isPremium) && (
+                          <>
+                            <Link to="/pricing" className="btn-plan btn-plan--secondary">
+                              Manage billing
+                            </Link>
+                            {isPro && (
+                              <Link to="/pricing" className="btn-plan btn-plan--accent">
+                                Upgrade to Premium
+                              </Link>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+
           <div className="settings-card">
             <h2>Preferences</h2>
-            
+
             <div className="setting-item">
               <div className="setting-label">
                 <DollarSign size={20} />
@@ -419,14 +545,14 @@ function Settings() {
                 <span>Theme</span>
               </div>
               <div className="theme-toggle">
-                <button 
-                  className={theme === 'light' ? 'active' : ''} 
+                <button
+                  className={theme === 'light' ? 'active' : ''}
                   onClick={() => setTheme('light')}
                 >
                   <Sun size={16} /> Light
                 </button>
-                <button 
-                  className={theme === 'dark' ? 'active' : ''} 
+                <button
+                  className={theme === 'dark' ? 'active' : ''}
                   onClick={() => setTheme('dark')}
                 >
                   <Moon size={16} /> Dark
@@ -437,120 +563,22 @@ function Settings() {
             <div className="setting-item">
               <div className="setting-label">
                 <UserIcon size={20} />
-                <span>Account Email</span>
+                <span>Account email</span>
               </div>
               <div className="account-info">
                 <p>{user?.email}</p>
               </div>
             </div>
 
-            {/* SUBSCRIPTION SECTION */}
-            {subscriptionLoading ? (
-              <div className="setting-item">
-                <div className="setting-label">
-                  <Zap size={20} />
-                  <span>Premium Plan</span>
-                </div>
-                <p style={{ color: '#999', fontSize: '0.9rem' }}>Loading...</p>
-              </div>
-            ) : getSubscriptionInfo() ? (
-              <div className="setting-item subscription-item">
-                <div className="setting-label">
-                  <Crown size={20} />
-                  <span>Premium Plan</span>
-                </div>
-                <div className="subscription-info">
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1rem',
-                    marginBottom: '1rem'
-                  }}>
-                    <div style={{
-                      background: getSubscriptionInfo().color.bg,
-                      color: getSubscriptionInfo().color.text,
-                      padding: '0.5rem 1rem',
-                      borderRadius: '20px',
-                      fontWeight: '600',
-                      fontSize: '0.95rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      {getSubscriptionInfo().plan === 'PRO' && <Zap size={16} />}
-                      {getSubscriptionInfo().plan === 'FULL-TIME' && (getSubscriptionInfo().plan === 'FULLTIME' ? <Crown size={16} /> : <Crown size={16} />)}
-                      {getSubscriptionInfo().plan}
-                    </div>
-                    {getSubscriptionInfo().plan !== 'FREE' && getSubscriptionInfo().status === 'active' && (
-                      <span style={{ color: '#22c55e', fontSize: '0.9rem', fontWeight: '500' }}>✓ Active</span>
-                    )}
-                  </div>
-                  
-                  {getSubscriptionInfo().plan === 'PRO' && (
-                    <p style={{ margin: '0.5rem 0', color: '#666', fontSize: '0.9rem' }}>
-                      📊 Invoice Scans: {getSubscriptionInfo().invoiceScansUsed}/{getSubscriptionInfo().invoiceScansLimit}
-                    </p>
-                  )}
-
-                  {getSubscriptionInfo().plan === 'FREE' && (
-                    <Link to="/pricing" className="upgrade-btn" style={{
-                      display: 'inline-block',
-                      marginTop: '0.5rem',
-                      padding: '0.5rem 1rem',
-                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      color: 'white',
-                      textDecoration: 'none',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      transition: 'transform 0.2s'
-                    }}>
-                      🚀 Upgrade to PRO
-                    </Link>
-                  )}
-
-                  {(getSubscriptionInfo().plan === 'PRO' || getSubscriptionInfo().plan === 'FULLTIME' || getSubscriptionInfo().plan === 'FULL-TIME') && (
-                    <Link to="/pricing" className="upgrade-btn" style={{
-                      display: 'inline-block',
-                      marginTop: '0.5rem',
-                      padding: '0.5rem 1rem',
-                      background: '#f0f0f0',
-                      color: '#333',
-                      textDecoration: 'none',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem',
-                      fontWeight: '600',
-                      transition: 'transform 0.2s'
-                    }}>
-                      💳 Manage Subscription
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
-            {/* ADMIN SECTION */}
             {isAdmin && (
               <div className="setting-item admin-item">
                 <div className="setting-label">
                   <Shield size={20} />
-                  <span>Admin Tools</span>
+                  <span>Admin</span>
                 </div>
-                <div style={{ marginTop: '0.5rem' }}>
-                  <Link to="/admin" className="admin-btn" style={{
-                    display: 'inline-block',
-                    padding: '0.5rem 1rem',
-                    background: '#ef4444',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '8px',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    transition: 'transform 0.2s'
-                  }}>
-                    🛡️ Admin Dashboard
-                  </Link>
-                </div>
+                <Link to="/admin" className="btn-plan btn-plan--admin">
+                  Open admin dashboard
+                </Link>
               </div>
             )}
 

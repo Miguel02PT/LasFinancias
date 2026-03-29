@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
+import { useUserRole } from '../hooks/useUserRole';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
@@ -49,6 +50,7 @@ function Dashboard() {
   const [chatOpen, setChatOpen] = useState(false);
   const [fixedExpenses, setFixedExpenses] = useState(0);
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid);
   
   const { balances, addBalance, deleteBalance, updateBalance, getTotalWithBalances } = useBalances();
   const { formatCurrency } = useCurrency();
@@ -180,9 +182,10 @@ function Dashboard() {
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
-    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },  { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
-  
+    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
+    { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
   ];
 
   return (

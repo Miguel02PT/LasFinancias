@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Check, X, Zap } from 'lucide-react';
-import { getSubscriptionStatus, changeSubscriptionPlan } from '../services/subscriptionService';
-import { showSuccess, showError } from './Toast';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { getSubscriptionStatus } from '../services/subscriptionService';
+import { createCheckoutSession, createBillingPortalSession } from '../services/stripeCheckout';
+import { showError } from './Toast';
 import './PricingPlans.css';
 
 export function PricingPlans({ userId, onUpgrade }) {
   const [currentPlan, setCurrentPlan] = useState('free');
+  const [stripeCustomerId, setStripeCustomerId] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -15,22 +19,37 @@ export function PricingPlans({ userId, onUpgrade }) {
   const loadCurrentPlan = async () => {
     const plan = await getSubscriptionStatus(userId);
     setCurrentPlan(plan);
+    if (userId) {
+      const snap = await getDoc(doc(db, 'users', userId));
+      if (snap.exists()) {
+        setStripeCustomerId(snap.data()?.stripeCustomerId || null);
+      }
+    }
   };
 
-  const handleUpgrade = async (plan) => {
+  const handlePlanAction = async (plan) => {
     if (plan === currentPlan) {
-      showError('Você já tem este plano');
+      showError('You already have this plan');
       return;
     }
 
     setLoading(true);
     try {
-      await changeSubscriptionPlan(userId, plan);
-      setCurrentPlan(plan);
-      showSuccess(`✅ Plano atualizado para ${plan}!`);
+      if (plan === 'free') {
+        if (stripeCustomerId) {
+          const { url } = await createBillingPortalSession();
+          if (url) window.location.href = url;
+        } else {
+          showError('Contact support to switch to the Free plan.');
+        }
+        return;
+      }
+
+      const { url } = await createCheckoutSession(plan);
+      if (url) window.location.href = url;
       onUpgrade?.(plan);
-    } catch (error) {
-      showError('Erro ao atualizar plano');
+    } catch (e) {
+      showError(e.message || 'Could not open checkout');
     } finally {
       setLoading(false);
     }
@@ -41,52 +60,52 @@ export function PricingPlans({ userId, onUpgrade }) {
       id: 'free',
       name: 'Free',
       price: '€0',
-      period: '/mês',
-      description: 'Perfeito para começar',
+      period: '/month',
+      description: 'Perfect to get started',
       features: [
-        { name: 'Transações ilimitadas', included: true },
-        { name: 'Categorias customizadas', included: true },
-        { name: 'Relatórios básicos', included: true },
-        { name: 'Invoice Scanner', included: false },
-        { name: 'AI Chat', included: false },
-        { name: 'Auto-Save Rules', included: false },
+        { name: 'Unlimited transactions', included: true },
+        { name: 'Custom categories', included: true },
+        { name: 'Core reports', included: true },
+        { name: 'Invoice scanner', included: false },
+        { name: 'AI chat', included: false },
+        { name: 'Auto-save rules', included: false }
       ],
-      cta: 'Atual',
+      cta: 'Current',
       disabled: currentPlan === 'free'
     },
     {
       id: 'pro',
       name: 'Pro',
-      price: '€4,99',
-      period: '/mês',
-      description: 'Para profissionais',
+      price: '€4.99',
+      period: '/month',
+      description: 'For power users',
       recommended: true,
       features: [
-        { name: 'Tudo do Free', included: true },
-        { name: 'Invoice Scanner (100/mês)', included: true },
-        { name: 'AI Chat & Insights', included: true },
-        { name: 'Relatórios avançados', included: true },
-        { name: 'Auto-Save Rules', included: false },
-        { name: 'Suporte prioritário', included: false },
+        { name: 'Everything in Free', included: true },
+        { name: '5 invoice scans per day', included: true },
+        { name: '5 AI chat messages per day', included: true },
+        { name: 'Insights & reports', included: true },
+        { name: 'Auto-save rules', included: false },
+        { name: 'Priority support', included: false }
       ],
-      cta: 'Upgrade para Pro',
+      cta: 'Upgrade to Pro',
       disabled: currentPlan === 'pro'
     },
     {
       id: 'fulltime',
-      name: 'Full-time',
-      price: '€9,99',
-      period: '/mês',
-      description: 'Tudo ilimitado',
+      name: 'Premium',
+      price: '€9.99',
+      period: '/month',
+      description: 'Unlimited automation',
       features: [
-        { name: 'Tudo do Pro', included: true },
-        { name: 'Invoice Scanner (Ilimitado)', included: true },
-        { name: 'Auto-Save Rules avançadas', included: true },
-        { name: 'Recurring transactions automáticas', included: true },
-        { name: 'Analytics detalhado', included: true },
-        { name: 'Suporte 24/7', included: true },
+        { name: 'Everything in Pro', included: true },
+        { name: 'Unlimited invoice scans', included: true },
+        { name: 'Unlimited AI chat', included: true },
+        { name: 'Advanced auto-save rules', included: true },
+        { name: 'Recurring automation', included: true },
+        { name: '24/7 priority support', included: true }
       ],
-      cta: 'Upgrade para Full-time',
+      cta: 'Upgrade to Premium',
       disabled: currentPlan === 'fulltime'
     }
   ];
@@ -94,16 +113,19 @@ export function PricingPlans({ userId, onUpgrade }) {
   return (
     <div className="pricing-container">
       <div className="pricing-header">
-        <h2>Escolha seu plano</h2>
-        <p>Upgrade agora para desbloquear mais features</p>
+        <h2>Choose your plan</h2>
+        <p>Upgrade when you need scanning, AI, and automation</p>
       </div>
 
       <div className="pricing-grid">
         {plans.map((plan) => (
-          <div key={plan.id} className={`pricing-card ${plan.recommended ? 'recommended' : ''} ${currentPlan === plan.id ? 'active' : ''}`}>
+          <div
+            key={plan.id}
+            className={`pricing-card ${plan.recommended ? 'recommended' : ''} ${currentPlan === plan.id ? 'active' : ''}`}
+          >
             {plan.recommended && (
               <div className="recommended-badge">
-                <Zap size={16} /> Mais Popular
+                <Zap size={16} /> Most popular
               </div>
             )}
 
@@ -130,34 +152,35 @@ export function PricingPlans({ userId, onUpgrade }) {
             </div>
 
             <button
+              type="button"
               className={`cta-btn ${currentPlan === plan.id ? 'active' : ''}`}
-              onClick={() => handleUpgrade(plan.id)}
+              onClick={() => handlePlanAction(plan.id)}
               disabled={plan.disabled || loading}
             >
-              {currentPlan === plan.id ? '✓ Seu Plano Atual' : plan.cta}
+              {currentPlan === plan.id ? 'Your current plan' : plan.cta}
             </button>
           </div>
         ))}
       </div>
 
       <div className="pricing-faq">
-        <h3>Perguntas Frequentes</h3>
+        <h3>FAQ</h3>
         <div className="faq-items">
           <div className="faq-item">
-            <h4>Posso upgrade/downgrade a qualquer momento?</h4>
-            <p>Sim! Você pode mudar de plano a qualquer momento. As mudanças têm efeito imediato.</p>
+            <h4>Can I change plans anytime?</h4>
+            <p>Yes. Upgrades use checkout; downgrades and cancellations use the Stripe billing portal when applicable.</p>
           </div>
           <div className="faq-item">
-            <h4>Os dados da minha conta são sincronizados?</h4>
-            <p>Sim! Independentemente do plano, todos os seus dados (transações, budgets, etc) estão sempre sincronizados.</p>
+            <h4>Is my data synced?</h4>
+            <p>Yes. Your transactions, budgets, and goals stay synced regardless of plan.</p>
           </div>
           <div className="faq-item">
-            <h4>Há período de trial?</h4>
-            <p>Você começa automaticamente com o plano Free. Experimente grátis e faça upgrade quando quiser!</p>
+            <h4>Is there a trial?</h4>
+            <p>You start on Free. Upgrade whenever you are ready.</p>
           </div>
           <div className="faq-item">
-            <h4>Como cancelo minha subscription?</h4>
-            <p>Você pode downgrade para Free a qualquer momento. Nenhum compromisso!</p>
+            <h4>How do I cancel?</h4>
+            <p>Use the Free plan button to open the Stripe portal and manage or cancel your subscription.</p>
           </div>
         </div>
       </div>

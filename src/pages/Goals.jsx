@@ -28,6 +28,7 @@ function Goals() {
   const [calculatedResult, setCalculatedResult] = useState(null);
   
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid);
   const { formatCurrency } = useCurrency();
   const { balances, loadBalances } = useBalances();
 
@@ -208,6 +209,7 @@ function Goals() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/admin', icon: Settings, label: 'Admin' },
   ];
 
   const handleLogout = async () => {

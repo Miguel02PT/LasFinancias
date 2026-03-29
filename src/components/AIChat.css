@@ -1,3 +1,17 @@
+.chat-quota {
+  font-size: 0.72rem;
+  padding: 0.45rem 0.85rem;
+  background: #f1f5f9;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+}
+
+.chat-quota--muted {
+  background: #ecfdf5;
+  color: #047857;
+}
+
 /* Chat Button */
 .chat-button {
   position: fixed;

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query, getDoc } from 'firebase/firestore';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
+import { useUserRole } from '../hooks/useUserRole';
 import { showSuccess, showError } from '../components/ToastWithUndo';
 import { motion } from 'framer-motion';
 import {
@@ -22,7 +23,6 @@ function Recurring() {
   const [startDate, setStartDate] = useState(new Date());
   const [selectedBalance, setSelectedBalance] = useState('');
   const [isActive, setIsActive] = useState(true);
-  const [createPastTransactions, setCreatePastTransactions] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -33,7 +33,7 @@ function Recurring() {
   const frequencies = ['monthly', 'weekly', 'yearly'];
 
   const { formatCurrency } = useCurrency();
-  const { balances } = useBalances();
+  const { balances, loadBalances } = useBalances();
 
   useEffect(() => {
     if (user) loadRecurring();
@@ -77,51 +77,52 @@ function Recurring() {
 
     const now = new Date();
     const start = new Date(startDate);
-    let transactionsCreated = 0;
+    let transactionCreatedToday = false;
     let updatedBalance = null;
 
-    if (createPastTransactions && start <= now) {
-      let currentDate = new Date(start);
-      const balance = balances.find(b => b.id === selectedBalance);
-      let currentBalance = balance?.amount || 0;
+    // Automatically create transaction TODAY if startDate is today or in the past
+    if (start <= now) {
       const amountValue = parseFloat(amount);
+      
+      // Set transaction date to today (start of day)
+      const todayAtMidnight = new Date(now);
+      todayAtMidnight.setHours(0, 0, 0, 0);
 
-      while (currentDate <= now) {
-        const pastTransaction = {
-          amount: amountValue,
-          description: `${description}`,
-          category,
-          type,
-          date: currentDate,
-          userId: user.uid,
-          balanceId: selectedBalance,
-          isRecurring: true,
-          recurringCreated: true
-        };
-        
-        await addDoc(collection(db, 'users', user.uid, 'transactions'), pastTransaction);
+      const transactionToday = {
+        amount: amountValue,
+        description: description,
+        category,
+        type,
+        date: todayAtMidnight,
+        userId: user.uid,
+        balanceId: selectedBalance,
+        isRecurring: true,
+        fromRecurring: true
+      };
+      
+      await addDoc(collection(db, 'users', user.uid, 'transactions'), transactionToday);
+      transactionCreatedToday = true;
+      
+      // Fetch current balance from Firestore (not from state which may be outdated)
+      const balanceRef = doc(db, 'users', user.uid, 'balances', selectedBalance);
+      const balanceDoc = await getDoc(balanceRef);
+      
+      if (balanceDoc.exists()) {
+        const currentBalance = balanceDoc.data().amount;
+        let newBalance = currentBalance;
         
         if (type === 'income') {
-          currentBalance += amountValue;
+          newBalance += amountValue;
         } else {
-          currentBalance -= amountValue;
+          newBalance -= amountValue;
         }
         
-        transactionsCreated++;
+        // Update balance in Firestore
+        await updateDoc(balanceRef, { amount: newBalance });
+        updatedBalance = newBalance;
         
-        if (frequency === 'monthly') {
-          currentDate.setMonth(currentDate.getMonth() + 1);
-        } else if (frequency === 'weekly') {
-          currentDate.setDate(currentDate.getDate() + 7);
-        } else {
-          currentDate.setFullYear(currentDate.getFullYear() + 1);
-        }
-      }
-      
-      if (balance) {
-        const balanceRef = doc(db, 'users', user.uid, 'balances', selectedBalance);
-        await updateDoc(balanceRef, { amount: currentBalance });
-        updatedBalance = currentBalance;
+        // Refresh balances context to update UI everywhere
+        await loadBalances();
       }
     }
 
@@ -136,17 +137,17 @@ function Recurring() {
       balanceName: balances.find(b => b.id === selectedBalance)?.name,
       isActive: true,
       createdAt: new Date(),
-      lastExecuted: createPastTransactions ? now : null,
-      nextExecution: calculateFirstExecution(frequency, startDate),
-      hasPastTransactions: createPastTransactions
+      lastExecuted: transactionCreatedToday ? new Date() : null,
+      nextExecution: calculateFirstExecution(frequency, startDate)
     };
 
     await addDoc(collection(db, 'users', user.uid, 'recurring'), newRecurring);
     
-    if (transactionsCreated > 0) {
-      showSuccess(`${transactionsCreated} past transaction(s) created and balance updated!`);
+    if (transactionCreatedToday) {
+      showSuccess('Transaction created for today and recurring added!');
+    } else {
+      showSuccess('Recurring transaction added!');
     }
-    showSuccess('Recurring transaction added!');
     
     resetForm();
     loadRecurring();
@@ -173,6 +174,7 @@ function Recurring() {
     setEditing(null);
     resetForm();
     loadRecurring();
+    await loadBalances();
   };
 
   const deleteRecurring = async (id) => {
@@ -180,6 +182,7 @@ function Recurring() {
       await deleteDoc(doc(db, 'users', user.uid, 'recurring', id));
       showSuccess('Deleted');
       loadRecurring();
+      await loadBalances();
     }
   };
 
@@ -199,7 +202,6 @@ function Recurring() {
     setStartDate(new Date());
     setSelectedBalance('');
     setIsActive(true);
-    setCreatePastTransactions(false);
     setShowForm(false);
     setEditing(null);
     setUseCustomCategory(false);
@@ -215,7 +217,6 @@ function Recurring() {
     setStartDate(item.startDate?.toDate ? item.startDate.toDate() : new Date(item.startDate));
     setSelectedBalance(item.balanceId);
     setIsActive(item.isActive);
-    setCreatePastTransactions(false);
     setShowForm(true);
   };
 
@@ -237,8 +238,8 @@ function Recurring() {
     { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },  { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
-  
     { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/admin', icon: Settings, label: 'Admin' },
   ];
 
   return (
@@ -366,20 +367,6 @@ function Recurring() {
                 <option value="">Select Balance</option>
                 {balances.map(b => <option key={b.id} value={b.id}>{b.name} ({formatCurrency(b.amount)})</option>)}
               </select>
-
-              <div className="past-transactions-option">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={createPastTransactions}
-                    onChange={(e) => setCreatePastTransactions(e.target.checked)}
-                  />
-                  <span>📅 Create missed transactions since start date</span>
-                </label>
-                <small className="help-text">
-                  This will create all past transactions from the start date until today and update your balance.
-                </small>
-              </div>
 
               <div className="active-toggle">
                 <button type="button" onClick={() => setIsActive(!isActive)} className={`toggle-active-btn ${isActive ? 'active' : ''}`}>

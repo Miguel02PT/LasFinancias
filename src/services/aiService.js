@@ -1,4 +1,4 @@
-const GROQ_API_KEY = "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";
+import { groqChatCompletion } from './groqClient';
 
 // Cache para evitar requests desnecessários
 const CACHE_KEY = 'ai_insights_cache';
@@ -66,27 +66,14 @@ Rules:
 - Tips: Give 3 personalized, actionable financial tips based on their actual spending data
 - Be specific and helpful, mention their actual spending patterns`;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 500
-      })
+    const { content: textRaw } = await groqChatCompletion({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 500
     });
+    const text = textRaw || "{}";
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const text = data.choices[0]?.message?.content || "{}";
-    
     console.log("Resposta da IA:", text);
     
     // Limpar a resposta (remover markdown se houver)

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { Menu, X, Wallet, LayoutDashboard, Receipt, LogOut, Shield, Users, TrendingUp, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
-import { collection, query, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { useUserRole } from '../hooks/useUserRole';
 import './Admin.css';
 
 function Admin() {
@@ -21,6 +22,7 @@ function Admin() {
   const [selectedUser, setSelectedUser] = useState(null);
 
   const user = auth.currentUser;
+  const { isAdmin, loading: roleLoading } = useUserRole(user?.uid);
 
   useEffect(() => {
     loadAdminData();
@@ -135,6 +137,19 @@ function Admin() {
     );
   }
 
+  // Redirecionar se não for admin
+  if (roleLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <p>Checking permissions...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="app-layout">
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -212,7 +227,7 @@ function Admin() {
                 <CheckCircle size={24} color="white" />
               </div>
               <div className="stat-body">
-                <p>Full-Time Users</p>
+                <p>Premium Users</p>
                 <h3>{adminStats.fullTimeUsers}</h3>
               </div>
             </div>
@@ -265,7 +280,7 @@ function Admin() {
                   className={`filter-btn ${filterPlan === 'fulltime' ? 'active' : ''}`}
                   onClick={() => setFilterPlan('fulltime')}
                 >
-                  Full-Time ({adminStats.fullTimeUsers})
+                  Premium ({adminStats.fullTimeUsers})
                 </button>
               </div>
             </div>

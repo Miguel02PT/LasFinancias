@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { auth, googleProvider } from '../firebase/config';
+import { auth, googleProvider, db } from '../firebase/config';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { createSubscription } from '../services/subscriptionService';
 import { FcGoogle } from 'react-icons/fc';
 import './Login.css';
 
@@ -19,7 +21,22 @@ function Login() {
     
     try {
       if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Criar documento de user com subscription FREE
+        await setDoc(doc(db, 'users', userCred.user.uid), {
+          email: userCred.user.email,
+          subscription: 'free',
+          role: 'user',
+          createdAt: Timestamp.now(),
+          invoiceScans: 0,
+          aiChatTotal: 0
+        });
+
+        // Criar subscription FREE
+        await createSubscription(userCred.user.uid, 'free');
+        
+        console.log('✅ Novo user criado com FREE subscription');
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
@@ -34,7 +51,27 @@ function Login() {
     setError('');
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Verificar se é novo user
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (!userDoc.exists()) {
+        // Novo user via Google - criar com FREE subscription
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          subscription: 'free',
+          role: 'user',
+          createdAt: Timestamp.now(),
+          invoiceScans: 0,
+          aiChatTotal: 0
+        });
+
+        // Criar subscription FREE
+        await createSubscription(user.uid, 'free');
+        
+        console.log('✅ Novo user Google criado com FREE subscription');
+      }
     } catch (err) {
       setError(err.message);
     } finally {

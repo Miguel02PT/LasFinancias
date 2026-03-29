@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { auth } from './firebase/config';
+import { auth, db } from './firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -10,6 +11,7 @@ import Reports from './pages/Reports';
 import Goals from './pages/Goals';
 import Budgets from './pages/Budgets';
 import Settings from './pages/Settings';
+import Pricing from './pages/Pricing';
 import Recurring from './pages/Recurring';
 import Admin from './pages/Admin';
 import { PageTransition } from './components/PageTransition';
@@ -20,11 +22,27 @@ import Feedback from './pages/Feedback';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
+    const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
+      setUser(authUser);
+      if (authUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', authUser.uid));
+          if (userDoc.exists()) {
+            setUserRole(userDoc.data().role || 'user');
+          } else {
+            setUserRole('user');
+          }
+        } catch (err) {
+          console.error('Error loading user role:', err);
+          setUserRole('user');
+        }
+      } else {
+        setUserRole(null);
+      }
       setLoading(false);
     });
     return unsubscribe;
@@ -125,13 +143,22 @@ function App() {
               <Navigate to="/login" />
             )
           } />
-          <Route path="/admin" element={
+          <Route path="/pricing" element={
             user ? (
+              <PageTransition>
+                <Pricing />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
+          <Route path="/admin" element={
+            user && userRole === 'admin' ? (
               <PageTransition>
                 <Admin />
               </PageTransition>
             ) : (
-              <Navigate to="/login" />
+              <Navigate to="/dashboard" />
             )
           } />
           <Route path="/savings-rules" element={user ? <SavingsRules /> : <Navigate to="/login" />} />

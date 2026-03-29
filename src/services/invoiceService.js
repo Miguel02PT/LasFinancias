@@ -2,8 +2,8 @@ import { db, storage } from '../firebase/config';
 import { addDoc, collection, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes } from 'firebase/storage';
 import Tesseract from 'tesseract.js';
-
-const GROQ_API_KEY = "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";
+import { groqChatCompletion } from './groqClient';
+import { incrementInvoiceScansCount } from './subscriptionService';
 
 // Categorias de despesas comuns
 const CATEGORY_KEYWORDS = {
@@ -83,7 +83,7 @@ export async function extractTextFromImage(imageFile) {
 /**
  * Parse invoice with Groq AI to extract: amount, category, date, description
  */
-export async function parseInvoiceWithAI(ocrText, userId) {
+export async function parseInvoiceWithAI(ocrText) {
   console.log('🤖 Enviando para Groq AI para análise...');
   
   try {
@@ -112,26 +112,13 @@ Return ONLY this JSON format (no other text):
   "description": "Grocery store purchase"
 }`;
 
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.3,
-        max_tokens: 300
-      })
+    const { content: rawContent } = await groqChatCompletion({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      max_tokens: 300
     });
-
-    if (!response.ok) {
-      throw new Error(`Groq API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    let text = data.choices[0]?.message?.content || "{}";
+    let text = rawContent || "{}";
     
     // Clean response (remove markdown if present)
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -189,8 +176,8 @@ export async function createTransactionFromInvoice(userId, invoiceData, imageSto
       description: invoiceData.description,
       date: Timestamp.fromDate(new Date(invoiceData.date)),
       balanceId: balanceId || '',
-      invoiceImage: imageStoragePath,
-      invoiceSource: true, // Flag para rastrear transações de faturas
+      invoiceImage: imageStoragePath || null,
+      invoiceSource: true,
       createdAt: Timestamp.now()
     };
 
@@ -214,8 +201,9 @@ export async function createTransactionFromInvoice(userId, invoiceData, imageSto
 
 /**
  * Full invoice processing pipeline
+ * AGORA COM OPÇÃO DE NÃO GUARDAR IMAGEM (STORAGE OPCIONAL)
  */
-export async function processInvoice(imageFile, userId, balanceId) {
+export async function processInvoice(imageFile, userId, balanceId, shouldSaveImage = false) {
   try {
     console.log('🎯 Iniciando processamento da fatura...');
 
@@ -231,14 +219,24 @@ export async function processInvoice(imageFile, userId, balanceId) {
     }
     
     // Step 3: Parse with AI
-    const invoiceData = await parseInvoiceWithAI(ocrText, userId);
+    const invoiceData = await parseInvoiceWithAI(ocrText);
     
     if (!invoiceData.amount || invoiceData.amount === 0) {
       throw new Error('Não foi possível encontrar o valor da fatura. Verifique se a imagem é legível.');
     }
     
-    // Step 4: Upload image
-    const storagePath = await uploadInvoiceImage(compressedBlob, userId, invoiceData.date);
+    // Step 4: Upload image (ONLY IF shouldSaveImage = true)
+    let storagePath = null;
+    if (shouldSaveImage) {
+      try {
+        storagePath = await uploadInvoiceImage(compressedBlob, userId, invoiceData.date);
+      } catch (uploadError) {
+        console.warn('⚠️ Upload falhou, mas continuando sem guardar imagem:', uploadError.message);
+        // Continua mesmo sem guardar a imagem
+      }
+    } else {
+      console.log('📸 Modo sem Storage: imagem não será guardada');
+    }
     
     // Step 5: Create transaction
     const transaction = await createTransactionFromInvoice(
@@ -247,6 +245,8 @@ export async function processInvoice(imageFile, userId, balanceId) {
       storagePath,
       balanceId
     );
+
+    await incrementInvoiceScansCount(userId);
 
     console.log('🎉 Fatura processada com sucesso!');
     return transaction;

@@ -1,260 +1,163 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Upload, X, Loader, Check } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Camera, X, Upload, Loader2 } from 'lucide-react';
 import { processInvoice } from '../services/invoiceService';
-import './InvoiceScanner.css';
 
-export function InvoiceScanner({ isOpen, onClose, onSuccess, balanceId, userId }) {
-  const [step, setStep] = useState('upload'); // upload, preview, editing, processing, success
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [invoiceData, setInvoiceData] = useState(null);
-  const [loading, setLoading] = useState(false);
+export function InvoiceScanner({ isOpen, onClose, onSuccess, userId, balanceId }) {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [saveImages, setSaveImages] = useState(false); // Opção para guardar ou não imagens
   const fileInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
 
-  const handleFileSelect = (file) => {
-    if (!file) return;
-
-    // Validar tipo
-    if (!file.type.startsWith('image/')) {
-      setError('Por favor, selecione uma imagem válida');
-      return;
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
+      setError('');
     }
-
-    // Validar tamanho (máx 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('Imagem muito grande. Máximo 10MB.');
-      return;
-    }
-
-    setImageFile(file);
-    setError('');
-
-    // Preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target.result);
-      setStep('preview');
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleCameraClick = () => {
-    cameraInputRef.current?.click();
-  };
-
-  const handleFileChange = (e) => {
-    handleFileSelect(e.target.files?.[0]);
   };
 
   const handleProcess = async () => {
-    if (!imageFile || !userId) {
-      setError('Dados incompletos');
-      return;
-    }
+    if (!selectedFile) return;
 
-    setLoading(true);
-    setStep('processing');
+    setProcessing(true);
     setError('');
 
     try {
-      const transaction = await processInvoice(imageFile, userId, balanceId);
-      setInvoiceData(transaction);
-      setStep('success');
-      
-      // Fechar automaticamente em 3 segundos
-      setTimeout(() => {
-        onSuccess?.(transaction);
-        handleClose();
-      }, 3000);
+      // Passar o parâmetro saveImages para controlar se guarda ou não no Storage
+      const transaction = await processInvoice(selectedFile, userId, balanceId, saveImages);
+      onSuccess?.(transaction);
+      onClose();
     } catch (err) {
-      setError(err.message || 'Erro ao processar a fatura');
-      setStep('preview');
+      console.error('Error processing invoice:', err);
+      setError(err.message || 'Failed to process invoice. Try again.');
     } finally {
-      setLoading(false);
+      setProcessing(false);
     }
-  };
-
-  const handleRetry = () => {
-    setImageFile(null);
-    setImagePreview(null);
-    setInvoiceData(null);
-    setError('');
-    setStep('upload');
-  };
-
-  const handleClose = () => {
-    handleRetry();
-    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="invoice-scanner-overlay">
-      <div className="invoice-scanner-modal">
-        {/* Header */}
-        <div className="invoice-scanner-header">
-          <h2>📸 Invoice Scanner</h2>
-          <button className="close-btn" onClick={handleClose}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>📸 Invoice Scanner</h3>
+          <button className="close-modal" onClick={onClose}>
             <X size={24} />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="invoice-scanner-content">
-          {step === 'upload' && (
-            <div className="upload-section">
-              <p className="upload-title">Carregue uma foto ou documento de uma fatura</p>
-              <p className="upload-subtitle">A IA vai processar automaticamente</p>
-
-              <div className="upload-buttons">
-                <button className="upload-btn camera-btn" onClick={handleCameraClick}>
-                  <Camera size={32} />
-                  <span>Câmera</span>
-                </button>
-                <button className="upload-btn file-btn" onClick={handleUploadClick}>
-                  <Upload size={32} />
-                  <span>Carregar Ficheiro</span>
-                </button>
-              </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
+        <div className="modal-body">
+          <div 
+            className="upload-area"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: '2px dashed #ccc',
+              borderRadius: '12px',
+              padding: '2rem',
+              textAlign: 'center',
+              cursor: 'pointer',
+              marginBottom: '1rem'
+            }}
+          >
+            {preview ? (
+              <img 
+                src={preview} 
+                alt="Preview" 
+                style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }}
               />
-              <input
-                ref={cameraInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
-
-              <p className="upload-info">
-                ✅ Formatos aceitos: JPG, PNG<br/>
-                ✅ Máximo: 10MB<br/>
-                ✅ Melhor resultado com fotos claras
-              </p>
-            </div>
-          )}
-
-          {step === 'preview' && (
-            <div className="preview-section">
-              <div className="preview-image">
-                <img src={imagePreview} alt="Preview" />
+            ) : (
+              <div>
+                <Camera size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                <p>Click to take a photo or upload receipt</p>
+                <small style={{ opacity: 0.7 }}>JPG, PNG - Max 5MB</small>
               </div>
-              <p className="preview-info">Carregando e analisando a fatura...</p>
-            </div>
-          )}
-
-          {step === 'processing' && (
-            <div className="processing-section">
-              <div className="processing-spinner">
-                <Loader size={48} className="spinning" />
-              </div>
-              <p className="processing-title">Processando fatura...</p>
-              <div className="processing-steps">
-                <div className="step">
-                  <span>🔍</span> Extraindo texto
-                </div>
-                <div className="step">
-                  <span>🤖</span> Analisando com IA
-                </div>
-                <div className="step">
-                  <span>💾</span> Salvando transação
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 'success' && invoiceData && (
-            <div className="success-section">
-              <div className="success-icon">
-                <Check size={64} />
-              </div>
-              <h3>Fatura Processada!</h3>
-              <div className="success-details">
-                <div className="detail-row">
-                  <span className="label">Categoria:</span>
-                  <span className="value">{invoiceData.category}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Valor:</span>
-                  <span className="value">€{invoiceData.amount?.toFixed(2)}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Data:</span>
-                  <span className="value">{new Date(invoiceData.date).toLocaleDateString('pt-PT')}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="label">Descrição:</span>
-                  <span className="value">{invoiceData.description}</span>
-                </div>
-              </div>
-              <p className="success-message">Transação adicionada com sucesso! ✨</p>
-            </div>
-          )}
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="error-message">
-            ⚠️ {error}
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
           </div>
-        )}
 
-        {/* Actions */}
-        {(step === 'preview' || step === 'processing') && (
-          <div className="invoice-scanner-actions">
-            <button
-              className="btn-secondary"
-              onClick={handleRetry}
-              disabled={loading}
+          {/* Opção para guardar ou não imagens */}
+          <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <input
+              type="checkbox"
+              id="saveImages"
+              checked={saveImages}
+              onChange={(e) => setSaveImages(e.target.checked)}
+            />
+            <label htmlFor="saveImages">Save invoice image (requires Storage)</label>
+          </div>
+
+          {error && (
+            <div style={{ 
+              padding: '0.75rem', 
+              background: '#fee', 
+              color: '#c33', 
+              borderRadius: '8px', 
+              marginBottom: '1rem' 
+            }}>
+              {error}
+            </div>
+          )}
+
+          <div className="modal-buttons" style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              className="upload-btn"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#e2e8f0',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
             >
-              ← Voltar
+              <Upload size={16} /> Change Image
             </button>
-            <button
-              className="btn-primary"
+            <button 
+              className="process-btn"
               onClick={handleProcess}
-              disabled={loading}
+              disabled={!selectedFile || processing}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: !selectedFile || processing ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                opacity: !selectedFile || processing ? 0.6 : 1
+              }}
             >
-              {loading ? (
+              {processing ? (
                 <>
-                  <Loader size={18} className="spinning" />
-                  Processando...
+                  <Loader2 size={16} className="spinner" style={{ animation: 'spin 1s linear infinite' }} />
+                  Processing...
                 </>
               ) : (
-                'Processar Fatura'
+                'Process Invoice'
               )}
             </button>
           </div>
-        )}
-
-        {step === 'success' && (
-          <div className="invoice-scanner-actions">
-            <button className="btn-primary" onClick={handleClose}>
-              Fechar
-            </button>
-          </div>
-        )}
-
-        {step === 'upload' && (
-          <div className="invoice-scanner-actions">
-            <button className="btn-secondary" onClick={handleClose}>
-              Cancelar
-            </button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

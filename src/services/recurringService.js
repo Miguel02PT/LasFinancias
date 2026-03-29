@@ -63,7 +63,7 @@ export async function processRecurringTransactions(userId) {
             ? currentBalance + recurring.amount 
             : currentBalance - recurring.amount;
           
-          await updateDoc(balanceRef, { balance: newBalance });
+          await updateDoc(balanceRef, { amount: newBalance });
         }
         
         // 3. Calcular próxima execução

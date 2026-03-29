@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["http://localhost:5173", "https://financias-app.vercel.app"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600
+  }
+]

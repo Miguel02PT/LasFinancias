@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
+import { useUserRole } from '../hooks/useUserRole';
 import { auth, db } from '../firebase/config';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import {
@@ -27,6 +28,7 @@ function Reports() {
   const [chartWidth, setChartWidth] = useState(800);
   const contentRef = useRef(null);
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid);
 
   const { formatCurrency } = useCurrency();
   const { balances, loading: balancesLoading } = useBalances();
@@ -247,6 +249,7 @@ function Reports() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
   ];
 
   // Stats do período selecionado

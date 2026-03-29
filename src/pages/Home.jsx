@@ -12,12 +12,10 @@ const plans = [
     period: 'forever',
     description: 'Perfect for getting started',
     features: [
-      'Up to 100 transactions',
-      '3 custom balances',
-      'Basic reports',
-      'AI assistant (limited)',
-      'Dark mode',
-      'Email support'
+      'Unlimited transactions & budgets',
+      'Reports & dashboard',
+      'Multiple balances',
+      'No invoice scanning or AI chat'
     ],
     buttonText: 'Start Free',
     buttonVariant: 'outline',
@@ -27,35 +25,31 @@ const plans = [
     name: 'Pro',
     price: '€4.99',
     period: 'per month',
-    description: 'Best for serious savers',
+    description: 'Invoice scanning + AI',
     features: [
-      'Unlimited transactions',
-      'Unlimited balances',
-      'Advanced reports & charts',
-      'Full AI assistant',
-      'Recurring transactions',
-      'Auto-save rules',
-      'CSV/PDF export',
-      'Priority support'
+      'Everything in Free',
+      '5 invoice scans per day',
+      '5 AI chat messages per day',
+      'Receipt photo & upload',
+      'Financial insights'
     ],
     buttonText: 'Get Pro',
     buttonVariant: 'primary',
     popular: true
   },
   {
-    name: 'Lifetime',
-    price: '€19.99',
-    period: 'one-time',
-    description: 'Pay once, own forever',
+    name: 'Premium',
+    price: '€9.99',
+    period: 'per month',
+    description: 'Unlimited power users',
     features: [
       'Everything in Pro',
-      'No recurring payments',
-      'Lifetime updates',
-      'Premium support forever',
-      'Early access to new features',
-      'Limited time offer'
+      'Unlimited invoice scans',
+      'Unlimited AI chat',
+      'Savings rules & automation',
+      'Priority support'
     ],
-    buttonText: 'Get Lifetime',
+    buttonText: 'Get Premium',
     buttonVariant: 'primary',
     popular: false
   }

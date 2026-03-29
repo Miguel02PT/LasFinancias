@@ -1,0 +1,14 @@
+{
+  "name": "functions",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.0",
+    "stripe": "^17.6.0"
+  }
+}

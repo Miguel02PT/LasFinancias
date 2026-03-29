@@ -89,6 +89,7 @@ function Feedback() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/admin', icon: Settings, label: 'Admin' },
   ];
 
   return (

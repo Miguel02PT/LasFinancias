@@ -8,9 +8,13 @@ service cloud.firestore {
     // Users collection - só owner pode ler/escrever
     match /users/{userId} {
       allow read: if request.auth.uid == userId;
-      allow create: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId && 
-                       !request.resource.data.subscription.changed(); // Não pode mudar subscription diretamente
+      allow create: if request.auth.uid == userId &&
+        request.resource.data.subscription == 'free';
+      // Plano e Stripe só via Cloud Functions / Admin (webhooks)
+      allow update: if request.auth.uid == userId &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'subscription', 'stripeCustomerId', 'stripeSubscriptionId', 'subscriptionStatus'
+        ]);
       allow delete: if false; // Nunca deletar user
       
       // Subcollections

@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, where } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { useCurrency } from '../context/CurrencyContext';
+import { useUserRole } from '../hooks/useUserRole';
 import { showSuccess, showError } from '../components/Toast';
 import { motion } from 'framer-motion';
 import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
-  PlusCircle, Trash2, Edit2 , Save,MessageSquare , XCircle, AlertCircle,PieChart,PiggyBank
+  PlusCircle, Trash2, Edit2, Save, MessageSquare, XCircle, AlertCircle, PieChart, PiggyBank
 } from 'lucide-react';
 import './Budgets.css';
-import { RefreshCw } from 'lucide-react';
 
+// Categorias predefinidas
+const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
 
 function Budgets() {
   const [budgets, setBudgets] = useState([]);
@@ -22,10 +24,11 @@ function Budgets() {
   const [showForm, setShowForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
+  
   const user = auth.currentUser;
-
-  const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Other'];
-  const { formatCurrency } = useCurrency();
+  const { isAdmin } = useUserRole(user?.uid); // ← APENAS UMA VEZ
+  const { formatCurrency } = useCurrency(); // ← ADICIONAR ESTA LINHA
+  const location = useLocation();
 
   useEffect(() => {
     if (user) {
@@ -134,11 +137,12 @@ function Budgets() {
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/goals', icon: Target, label: 'Goals' },
-    { path: '/budgets', icon: PieChart, label: 'Budgets' },  // ← mudado
-    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
+    { path: '/budgets', icon: PieChart, label: 'Budgets' },
+    { path: '/recurring', icon: PieChart, label: 'Recurring' }, // ← MUDAR ICONE SE QUISER
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
-    { path: '/settings', icon: Settings, label: 'Settings' },  // ← SEMPRE ÚLTIMO
+    { path: '/settings', icon: Settings, label: 'Settings' },
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
   ];
 
   return (
@@ -152,12 +156,19 @@ function Budgets() {
           </button>
         </div>
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <Link to={item.path} key={item.path} className={`nav-item ${item.path === '/budgets' ? 'active' : ''}`}>
-              <item.icon size={20} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link 
+                to={item.path} 
+                key={item.path} 
+                className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+              >
+                <Icon size={20} />
+                <span>{item.label}</span>
+              </Link>
+            )
+          })}
         </nav>
         <button onClick={handleLogout} className="logout-sidebar">
           <LogOut size={20} />

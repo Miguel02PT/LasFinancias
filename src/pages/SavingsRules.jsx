@@ -10,6 +10,7 @@ import {
   PlusCircle, Trash2, Edit2, Save, XCircle, PiggyBank, RefreshCw, PieChart, Calendar, Plus, MessageSquare
 } from 'lucide-react';
 import './SavingsRules.css';
+import { showError } from '../components/ToastWithUndo';
 
 function SavingsRules() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -158,6 +159,7 @@ function SavingsRules() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
+    { path: '/admin', icon: Settings, label: 'Admin' },
   ];
 
   const formatAmountDisplay = (rule) => {
