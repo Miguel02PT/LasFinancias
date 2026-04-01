@@ -73,7 +73,7 @@ export function InvoiceScanner({ isOpen, onClose, onSuccess, userId, balanceId }
     <div className="invoice-scanner-overlay" onClick={onClose}>
       <div className="invoice-scanner-modal" onClick={(e) => e.stopPropagation()}>
         <div className="invoice-scanner-header">
-          <h2>📸 Invoice Scanner</h2>
+          <h2 id="Title">📸 Invoice Scanner</h2>
           <button className="close-btn" onClick={onClose} disabled={processing}>
             <X size={24} />
           </button>
