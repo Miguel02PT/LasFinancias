@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Camera, X, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { processInvoice } from '../services/invoiceService';
+import './InvoiceScanner.css';  // ← PRECISA ESTAR NO TOPO
 
 const PROCESSING_STEPS = [
   { id: 'compress', label: 'Compressing image...' },
