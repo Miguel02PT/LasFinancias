@@ -1,5 +1,5 @@
 // Transactions.jsx - COMPLETO CORRIGIDO
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCurrency } from '../context/CurrencyContext';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
@@ -287,13 +287,13 @@ function Transactions() {
     setShowForm(false);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
+  }, []);
 
   const months = ['all', ...new Set(transactions.map(t => getMonthYear(t.date)))];
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
@@ -304,7 +304,7 @@ function Transactions() {
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
     ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
-  ];
+  ], [isAdmin]);
   
 
   return (

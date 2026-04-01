@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { useCurrency } from '../context/CurrencyContext';
 import { useUserRole } from '../hooks/useUserRole';
-import { showSuccess, showError } from '../components/Toast';
+import { showSuccess } from '../components/Toast';
 import { motion } from 'framer-motion';
 import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
-  PlusCircle, Trash2, Edit2, Save, MessageSquare, XCircle, AlertCircle, PieChart, PiggyBank
+  PlusCircle, Trash2, Edit2, Save, MessageSquare, XCircle, AlertCircle, PieChart,
+  PiggyBank, RefreshCw
 } from 'lucide-react';
 import './Budgets.css';
 
-// Categorias predefinidas
 const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
 
 function Budgets() {
@@ -24,49 +24,49 @@ function Budgets() {
   const [showForm, setShowForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
-  
+
   const user = auth.currentUser;
-  const { isAdmin } = useUserRole(user?.uid); // ← APENAS UMA VEZ
-  const { formatCurrency } = useCurrency(); // ← ADICIONAR ESTA LINHA
+  const { isAdmin } = useUserRole(user?.uid);
+  const { formatCurrency } = useCurrency();
   const location = useLocation();
+
+  const loadBudgets = useCallback(async () => {
+    if (!user) return;
+    const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'budgets'));
+    const budgetsData = [];
+    querySnapshot.forEach((d) => {
+      budgetsData.push({ id: d.id, ...d.data() });
+    });
+    setBudgets(budgetsData);
+  }, [user]);
+
+  const loadTransactions = useCallback(async () => {
+    if (!user) return;
+    const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'transactions'));
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const transactionsData = [];
+    querySnapshot.forEach((d) => {
+      const data = d.data();
+      const date = data.date?.toDate();
+      if (date && date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+        transactionsData.push(data);
+      }
+    });
+    setTransactions(transactionsData);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       loadBudgets();
       loadTransactions();
     }
-  }, [user]);
-
-  const loadBudgets = async () => {
-    const q = query(collection(db, 'users', user.uid, 'budgets'));
-    const querySnapshot = await getDocs(q);
-    const budgetsData = [];
-    querySnapshot.forEach((doc) => {
-      budgetsData.push({ id: doc.id, ...doc.data() });
-    });
-    setBudgets(budgetsData);
-  };
-
-  const loadTransactions = async () => {
-    const q = query(collection(db, 'users', user.uid, 'transactions'));
-    const querySnapshot = await getDocs(q);
-    const transactionsData = [];
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      const date = data.date?.toDate();
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      if (date && date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-        transactionsData.push(data);
-      }
-    });
-    setTransactions(transactionsData);
-  };
+  }, [user, loadBudgets, loadTransactions]);
 
   const addBudget = async (e) => {
     e.preventDefault();
     if (!category || !limit) return;
-
     await addDoc(collection(db, 'users', user.uid, 'budgets'), {
       category,
       limit: parseFloat(limit),
@@ -83,7 +83,6 @@ function Budgets() {
   const updateBudget = async (e) => {
     e.preventDefault();
     if (!category || !limit || !editingBudget) return;
-
     const budgetRef = doc(db, 'users', user.uid, 'budgets', editingBudget.id);
     await updateDoc(budgetRef, {
       category,
@@ -122,28 +121,28 @@ function Budgets() {
     setShowForm(false);
   };
 
-  const getSpent = (category) => {
+  const getSpent = (cat) => {
     return transactions
-      .filter(t => t.type === 'expense' && t.category === category)
+      .filter(t => t.type === 'expense' && t.category === cat)
       .reduce((sum, t) => sum + t.amount, 0);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
+  }, []);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/budgets', icon: PieChart, label: 'Budgets' },
-    { path: '/recurring', icon: PieChart, label: 'Recurring' }, // ← MUDAR ICONE SE QUISER
+    { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
     ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
-  ];
+  ], [isAdmin]);
 
   return (
     <div className="app-layout">
@@ -159,15 +158,15 @@ function Budgets() {
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <Link 
-                to={item.path} 
-                key={item.path} 
+              <Link
+                to={item.path}
+                key={item.path}
                 className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
               >
                 <Icon size={20} />
                 <span>{item.label}</span>
               </Link>
-            )
+            );
           })}
         </nav>
         <button onClick={handleLogout} className="logout-sidebar">
@@ -191,18 +190,18 @@ function Budgets() {
 
         <div className="budgets-content">
           {!showForm ? (
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.02 }}
-              className="add-budget-btn" 
+              className="add-budget-btn"
               onClick={() => setShowForm(true)}
             >
               <PlusCircle size={20} /> Set Budget
             </motion.button>
           ) : (
-            <motion.form 
+            <motion.form
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="budget-form" 
+              className="budget-form"
               onSubmit={editingBudget ? updateBudget : addBudget}
             >
               {useCustomCategory ? (
@@ -318,8 +317,8 @@ function Budgets() {
                       <span>Limit: {formatCurrency(budget.limit)}</span>
                     </div>
                     <div className="progress-bar">
-                      <div 
-                        className={`progress-fill ${isOver ? 'over' : ''}`} 
+                      <div
+                        className={`progress-fill ${isOver ? 'over' : ''}`}
                         style={{ width: `${Math.min(percentage, 100)}%` }}
                       ></div>
                     </div>

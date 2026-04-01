@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { auth, db } from './firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -19,6 +19,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 import SavingsRules from './pages/SavingsRules';
 import Feedback from './pages/Feedback';
+import { ThemeProvider } from './context/ThemeContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -26,26 +27,46 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (authUser) => {
+    let unsubscribeRole = null;
+    
+    const unsubscribeAuth = auth.onAuthStateChanged(async (authUser) => {
       setUser(authUser);
+      
+      // Limpar subscription anterior se existe
+      if (unsubscribeRole) {
+        unsubscribeRole();
+      }
+      
       if (authUser) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', authUser.uid));
-          if (userDoc.exists()) {
-            setUserRole(userDoc.data().role || 'user');
-          } else {
+        // Usar onSnapshot para ouvir mudanças em tempo real na role
+        unsubscribeRole = onSnapshot(
+          doc(db, 'users', authUser.uid),
+          (docSnapshot) => {
+            if (docSnapshot.exists()) {
+              setUserRole(docSnapshot.data().role || 'user');
+            } else {
+              setUserRole('user');
+            }
+            setLoading(false);
+          },
+          (err) => {
+            console.error('Error loading user role:', err);
             setUserRole('user');
+            setLoading(false);
           }
-        } catch (err) {
-          console.error('Error loading user role:', err);
-          setUserRole('user');
-        }
+        );
       } else {
         setUserRole(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
-    return unsubscribe;
+    
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeRole) {
+        unsubscribeRole();
+      }
+    };
   }, []);
 
   if (loading) {
@@ -53,10 +74,11 @@ function App() {
   }
 
   return (
-    <Router>
-      <ErrorBoundary>
-        <AnimatePresence mode="wait">
-          <Routes>
+      <ThemeProvider>
+      <Router>
+        <ErrorBoundary>
+          <AnimatePresence mode="wait">
+            <Routes>
             <Route path="/" element={
               <PageTransition>
                 <Home user={user} />
@@ -161,11 +183,20 @@ function App() {
               <Navigate to="/dashboard" />
             )
           } />
-          <Route path="/savings-rules" element={user ? <SavingsRules /> : <Navigate to="/login" />} />
+          <Route path="/savings-rules" element={
+            user ? (
+              <PageTransition>
+                <SavingsRules />
+              </PageTransition>
+            ) : (
+              <Navigate to="/login" />
+            )
+          } />
           </Routes>
-        </AnimatePresence>
-      </ErrorBoundary>
-    </Router>
+          </AnimatePresence>
+        </ErrorBoundary>
+      </Router>
+    </ThemeProvider>
   );
 }
 

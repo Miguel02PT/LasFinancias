@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { Navigate } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { Menu, X, Wallet, LayoutDashboard, Receipt, LogOut, Shield, Users, TrendingUp, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
-import { collection, query, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { Menu, X, LayoutDashboard, Receipt, LogOut, Shield, Users, TrendingUp, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useUserRole } from '../hooks/useUserRole';
+import { Link } from 'react-router-dom';
 import './Admin.css';
 
 function Admin() {
@@ -24,17 +25,12 @@ function Admin() {
   const user = auth.currentUser;
   const { isAdmin, loading: roleLoading } = useUserRole(user?.uid);
 
-  useEffect(() => {
-    loadAdminData();
-  }, []);
-
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     setLoading(true);
     try {
-      // Buscar todos os usuários
       const usersSnap = await getDocs(collection(db, 'users'));
       const usersData = [];
-      
+
       let totalUsers = 0;
       let freeUsers = 0;
       let proUsers = 0;
@@ -45,19 +41,19 @@ function Admin() {
       for (const userDoc of usersSnap.docs) {
         const userData = userDoc.data();
         const subscription = userData.subscription || 'free';
-        
+
         totalUsers++;
 
         if (subscription === 'free') freeUsers++;
         if (subscription === 'pro') {
           proUsers++;
           activeSubscriptions++;
-          totalRevenue += 4.99; // Pro costs €4.99/month
+          totalRevenue += 4.99;
         }
         if (subscription === 'fulltime' || subscription === 'full-time') {
           fullTimeUsers++;
           activeSubscriptions++;
-          totalRevenue += 9.99; // Full-time costs €9.99/month
+          totalRevenue += 9.99;
         }
 
         usersData.push({
@@ -85,15 +81,19 @@ function Admin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadAdminData();
+    }
+  }, [isAdmin, loadAdminData]);
 
   const handleUpgradeUser = async (userId, newPlan) => {
     try {
       await updateDoc(doc(db, 'users', userId), {
         subscription: newPlan
       });
-      
-      // Recarregar dados
       loadAdminData();
       setSelectedUser(null);
     } catch (error) {
@@ -106,8 +106,6 @@ function Admin() {
       await updateDoc(doc(db, 'users', userId), {
         role: 'admin'
       });
-      
-      // Recarregar dados
       loadAdminData();
       setSelectedUser(null);
     } catch (error) {
@@ -119,15 +117,9 @@ function Admin() {
     await auth.signOut();
   };
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     filterPlan === 'all' ? true : u.subscription === filterPlan
   );
-
-  const navItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/transactions', icon: Receipt, label: 'Transactions' },
-    { path: '/settings', icon: 'settings', label: 'Settings' },
-  ];
 
   if (!user) {
     return (
@@ -137,7 +129,6 @@ function Admin() {
     );
   }
 
-  // Redirecionar se não for admin
   if (roleLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
@@ -190,7 +181,6 @@ function Admin() {
         </header>
 
         <div className="admin-content">
-          {/* STATS SECTION */}
           <div className="admin-stats-grid">
             <div className="admin-stat-card">
               <div className="stat-icon" style={{ background: '#667eea' }}>
@@ -253,30 +243,29 @@ function Admin() {
             </div>
           </div>
 
-          {/* USERS SECTION */}
           <div className="admin-users-section">
             <div className="section-header">
               <h2>👥 Users Management</h2>
               <div className="filter-buttons">
-                <button 
+                <button
                   className={`filter-btn ${filterPlan === 'all' ? 'active' : ''}`}
                   onClick={() => setFilterPlan('all')}
                 >
                   All ({users.length})
                 </button>
-                <button 
+                <button
                   className={`filter-btn ${filterPlan === 'free' ? 'active' : ''}`}
                   onClick={() => setFilterPlan('free')}
                 >
                   Free ({adminStats.freeUsers})
                 </button>
-                <button 
+                <button
                   className={`filter-btn ${filterPlan === 'pro' ? 'active' : ''}`}
                   onClick={() => setFilterPlan('pro')}
                 >
                   Pro ({adminStats.proUsers})
                 </button>
-                <button 
+                <button
                   className={`filter-btn ${filterPlan === 'fulltime' ? 'active' : ''}`}
                   onClick={() => setFilterPlan('fulltime')}
                 >
@@ -315,7 +304,7 @@ function Admin() {
                         </td>
                         <td>{u.invoiceScans || 0}</td>
                         <td>
-                          <button 
+                          <button
                             className="action-btn"
                             onClick={() => setSelectedUser(u)}
                           >
@@ -330,7 +319,6 @@ function Admin() {
             )}
           </div>
 
-          {/* USER MODAL */}
           {selectedUser && (
             <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
               <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -340,7 +328,7 @@ function Admin() {
                     <X size={24} />
                   </button>
                 </div>
-                
+
                 <div className="modal-body">
                   <div className="form-group">
                     <label>Change Subscription Plan</label>
@@ -361,7 +349,7 @@ function Admin() {
                     <label>User Role</label>
                     <div style={{ marginTop: '0.5rem' }}>
                       {selectedUser.role !== 'admin' ? (
-                        <button 
+                        <button
                           className="make-admin-btn"
                           onClick={() => handleMakeAdmin(selectedUser.id)}
                         >
@@ -384,7 +372,7 @@ function Admin() {
                 </div>
 
                 <div className="modal-footer">
-                  <button 
+                  <button
                     className="modal-close-btn"
                     onClick={() => setSelectedUser(null)}
                   >

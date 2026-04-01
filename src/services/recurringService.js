@@ -1,5 +1,5 @@
 import { auth, db } from '../firebase/config';
-import { collection, getDocs, addDoc, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore'; // ← Adicionar getDoc
 import { showSuccess } from '../components/ToastWithUndo';
 
 // Função para executar transações recorrentes
@@ -48,22 +48,22 @@ export async function processRecurringTransactions(userId) {
         
         await addDoc(collection(db, 'users', userId, 'transactions'), newTransaction);
         
-        // 2. Atualizar o balance (se tiver balanceId)
+        // 2. Atualizar o balance (se tiver balanceId) - CÓDIGO CORRIGIDO
         if (recurring.balanceId) {
           const balanceRef = doc(db, 'users', userId, 'balances', recurring.balanceId);
-          const balanceSnap = await getDocs(collection(db, 'users', userId, 'balances'));
-          let currentBalance = 0;
-          balanceSnap.forEach(b => {
-            if (b.id === recurring.balanceId) {
-              currentBalance = b.data().amount;
-            }
-          });
+          const balanceDoc = await getDoc(balanceRef); // ← CORRETO: lê apenas o documento específico
           
-          const newBalance = recurring.type === 'income' 
-            ? currentBalance + recurring.amount 
-            : currentBalance - recurring.amount;
-          
-          await updateDoc(balanceRef, { amount: newBalance });
+          if (balanceDoc.exists()) {
+            const currentBalance = balanceDoc.data().amount;
+            const newBalance = recurring.type === 'income' 
+              ? currentBalance + recurring.amount 
+              : currentBalance - recurring.amount;
+            
+            console.log(`Updating balance: ${currentBalance} -> ${newBalance} (${recurring.type}: ${recurring.amount})`);
+            await updateDoc(balanceRef, { amount: newBalance });
+          } else {
+            console.error(`Balance not found: ${recurring.balanceId}`);
+          }
         }
         
         // 3. Calcular próxima execução
@@ -74,9 +74,13 @@ export async function processRecurringTransactions(userId) {
         } else if (recurring.frequency === 'weekly') {
           nextExec = new Date(nextExecution);
           nextExec.setDate(nextExec.getDate() + 7);
-        } else {
+        } else if (recurring.frequency === 'yearly') {
           nextExec = new Date(nextExecution);
           nextExec.setFullYear(nextExec.getFullYear() + 1);
+        } else {
+          // Default para monthly
+          nextExec = new Date(nextExecution);
+          nextExec.setMonth(nextExec.getMonth() + 1);
         }
         
         // 4. Atualizar a recorrente
@@ -87,7 +91,7 @@ export async function processRecurringTransactions(userId) {
         });
         
         newTransactions++;
-        console.log(`Executed: ${recurring.description}, next: ${nextExec}`);
+        console.log(`Executed: ${recurring.description}, new balance updated, next: ${nextExec.toLocaleDateString()}`);
       }
     }
     

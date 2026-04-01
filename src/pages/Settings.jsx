@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { useCurrency } from '../context/CurrencyContext';
@@ -7,14 +7,13 @@ import { Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings 
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { getSubscriptionDetails } from '../services/subscriptionService';
 import './Settings.css';
+import { useTheme } from '../context/ThemeContext';
+
 
 function Settings() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { currency, setCurrency } = useCurrency();
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved === 'dark' ? 'dark' : 'light';
-  });
+  const { theme, setTheme } = useTheme();  // ✅ USAR O HOOK DO CONTEXT
   const user = auth.currentUser;
   const { isAdmin } = useUserRole(user?.uid);
 
@@ -44,24 +43,8 @@ function Settings() {
 
   const currencies = ['USD', 'EUR', 'GBP', 'BRL'];
 
-  // Garantir que o tema começa light se não houver saved
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (!savedTheme) {
-      localStorage.setItem('theme', 'light');
-      setTheme('light');
-    }
-  }, []);
-
   // Aplicar o tema quando mudar
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.body.classList.add('dark-mode');
-    } else {
-      document.body.classList.remove('dark-mode');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+ 
 
   // Carregar dados de subscription e verificar se é admin
   useEffect(() => {
@@ -167,9 +150,9 @@ function Settings() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
+  }, []);
 
   // Helper para obter informações formatadas de subscription
   const getSubscriptionInfo = () => {
@@ -201,7 +184,7 @@ function Settings() {
     };
   };
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
@@ -212,7 +195,7 @@ function Settings() {
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: SettingsIcon, label: 'Settings' },
     ...(isAdmin ? [{ path: '/admin', icon: SettingsIcon, label: 'Admin' }] : [])
-  ];
+  ], [isAdmin]);
 
   return (
     <div className="app-layout">

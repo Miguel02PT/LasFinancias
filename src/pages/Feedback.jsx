@@ -1,15 +1,15 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useCallback, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { addDoc, collection } from 'firebase/firestore';
-import { 
+import { useUserRole } from '../hooks/useUserRole';
+import {
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
   Bug, Lightbulb, Send, CheckCircle, AlertCircle, RefreshCw, PieChart, PiggyBank, MessageSquare
 } from 'lucide-react';
 import { showSuccess, showError } from '../components/ToastWithUndo';
 import './Feedback.css';
 
-// O teu ID do Formspree
 const FORMSPREE_ID = 'mbdpdovr';
 
 function Feedback() {
@@ -19,35 +19,28 @@ function Feedback() {
   const [description, setDescription] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const user = auth.currentUser;
 
-  const handleSubmit = async (e) => {
+  const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid) || { isAdmin: false };
+  const location = useLocation();
+
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
+    if (!user) return;
     if (!title.trim() || !description.trim()) return;
-    
+
     setSending(true);
-    
+
     try {
-      // 1. Guardar no Firebase
-      await addDoc(collection(db, 'users', user.uid, 'feedback'), {
-        type,
-        title,
-        description,
-        status: 'pending',
-        createdAt: new Date(),
-        userEmail: user?.email,
-        userId: user?.uid
-      });
-      
-      // 2. Enviar email via Formspree
+      // 1. Enviar email via Formspree primeiro
       const formData = new FormData();
       formData.append('type', type === 'bug' ? '🐛 Bug Report' : '💡 Suggestion');
       formData.append('title', title);
       formData.append('description', description);
-      formData.append('user_email', user?.email);
+      formData.append('user_email', user.email);
       formData.append('date', new Date().toLocaleString());
-      formData.append('user_id', user?.uid);
-      
+      formData.append('user_id', user.uid);
+
       const response = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
         method: 'POST',
         body: formData,
@@ -55,31 +48,43 @@ function Feedback() {
           'Accept': 'application/json'
         }
       });
-      
-      if (response.ok) {
-        setSent(true);
-        setTimeout(() => {
-          setSent(false);
-          setTitle('');
-          setDescription('');
-        }, 3000);
-        showSuccess('Feedback sent! Thank you!');
-      } else {
+
+      if (!response.ok) {
         throw new Error('Failed to send');
       }
+
+      // 2. Só guarda no Firebase se o email foi enviado com sucesso
+      await addDoc(collection(db, 'users', user.uid, 'feedback'), {
+        type,
+        title,
+        description,
+        status: 'pending',
+        createdAt: new Date(),
+        userEmail: user.email,
+        userId: user.uid
+      });
+
+      setSent(true);
+      showSuccess('Feedback sent! Thank you!');
+
+      setTimeout(() => {
+        setSent(false);
+        setTitle('');
+        setDescription('');
+      }, 3000);
     } catch (error) {
       console.error('Error sending feedback:', error);
       showError('Failed to send feedback. Please try again.');
     } finally {
       setSending(false);
     }
-  };
+  }, [user, type, title, description]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
+  }, []);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
@@ -89,8 +94,8 @@ function Feedback() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
-    { path: '/admin', icon: Settings, label: 'Admin' },
-  ];
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
+  ], [isAdmin]);
 
   return (
     <div className="app-layout">
@@ -104,7 +109,11 @@ function Feedback() {
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
-            <Link to={item.path} key={item.path} className={`nav-item ${item.path === '/feedback' ? 'active' : ''}`}>
+            <Link
+              to={item.path}
+              key={item.path}
+              className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            >
               <item.icon size={20} />
               <span>{item.label}</span>
             </Link>
@@ -130,15 +139,15 @@ function Feedback() {
         </header>
 
         <div className="feedback-content">
-          {sent ? (
-            <div className="feedback-success-card">
-              <CheckCircle size={48} />
-              <h2>Thank You!</h2>
-              <p>Your feedback has been sent successfully.</p>
-              <p className="small">We'll review it and get back to you if needed.</p>
-            </div>
-          ) : (
-            <div className="feedback-card">
+            {sent ? (
+              <div className="feedback-success-card">
+                <CheckCircle size={48} />
+                <h2>Thank You!</h2>
+                <p>Your feedback has been sent successfully.</p>
+                <p className="small">We'll review it and get back to you if needed.</p>
+              </div>
+            ) : (
+              <div className="feedback-card">
               <div className="feedback-header-card">
                 <MessageSquare size={32} />
                 <h2>Help Us Improve</h2>
@@ -179,8 +188,8 @@ function Feedback() {
                 <div className="form-group">
                   <label>Description</label>
                   <textarea
-                    placeholder={type === 'bug' 
-                      ? "1. What were you doing?\n2. What did you expect?\n3. What happened instead?" 
+                    placeholder={type === 'bug'
+                      ? "1. What were you doing?\n2. What did you expect?\n3. What happened instead?"
                       : "Describe your idea and how it would help..."}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -207,7 +216,7 @@ function Feedback() {
               </div>
             </div>
           )}
-        </div>
+          </div>
       </main>
     </div>
   );

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
 import { useSavingsRules } from '../context/SavingsRulesContext';
+import { useUserRole } from '../hooks/useUserRole';
 import { 
   Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
   PlusCircle, Trash2, Edit2, Save, XCircle, PiggyBank, RefreshCw, PieChart, Calendar, Plus, MessageSquare
@@ -30,6 +31,8 @@ function SavingsRules() {
   const [allocationPercentage, setAllocationPercentage] = useState('');
   
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid) || { isAdmin: false };
+  const location = useLocation();
   const { formatCurrency } = useCurrency();
   const { balances } = useBalances();
   const { rules, addRule, updateRule, deleteRule } = useSavingsRules();
@@ -145,11 +148,11 @@ function SavingsRules() {
     setGoalAllocations(goalAllocations.filter((_, i) => i !== index));
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
+  }, []);
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
@@ -159,8 +162,8 @@ function SavingsRules() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
-    { path: '/admin', icon: Settings, label: 'Admin' },
-  ];
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
+  ], [isAdmin]);
 
   const formatAmountDisplay = (rule) => {
     if (rule.amountType === 'percentage') {

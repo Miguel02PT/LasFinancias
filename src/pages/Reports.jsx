@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
@@ -268,9 +268,9 @@ function Reports() {
     return { income, expenses, net, total: filtered.length };
   }, [transactions, selectedYear, selectedMonth, selectedDay]);
 
-  async function handleLogout() {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  }
+  }, []);
 
   // Estado vazio
   if (!loading && transactions.length === 0) {

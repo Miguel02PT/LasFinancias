@@ -1,43 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
 import { useUserRole } from '../hooks/useUserRole';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { 
-  LayoutDashboard, 
-  Receipt, 
-  BarChart3, 
-  Target, 
-  Settings,
-  LogOut,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  Menu,
-  PieChart,
-  X,
-  Trash2,
-  PlusCircle,
-  Edit2,
-  RefreshCw,
-  Sparkles,
-  PiggyBank
-, MessageSquare} from 'lucide-react';
+  LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
+  TrendingUp, TrendingDown, Wallet, Menu, PieChart, X, Trash2,
+  PlusCircle, Edit2, RefreshCw, Sparkles, PiggyBank, MessageSquare
+} from 'lucide-react';
 import './Dashboard.css';
-import { useLocation } from 'react-router-dom';
 import AIChat from '../components/AIChat';
 import { PageTransition } from '../components/PageTransition';
 import { SkeletonStats } from '../components/Skeleton';
-import { showSuccess, showError } from '../components/ToastWithUndo';
+import { showSuccess } from '../components/ToastWithUndo';
 import { processRecurringTransactions } from '../services/recurringService';
+import { useTransactions } from "../hooks/useTransactions";
+import { collection, getDocs } from 'firebase/firestore';
 
 function Dashboard() {
-  const [transactions, setTransactions] = useState([]);
-  const [totalBalance, setTotalBalance] = useState(0);
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [initialBalance, setInitialBalance] = useState(0);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
@@ -46,15 +27,28 @@ function Dashboard() {
   const [newBalanceAmount, setNewBalanceAmount] = useState('');
   const [includeInTotal, setIncludeInTotal] = useState(true);
   const [editingBalance, setEditingBalance] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [fixedExpenses, setFixedExpenses] = useState(0);
-  const user = auth.currentUser;
-  const { isAdmin } = useUserRole(user?.uid);
   
+  const user = auth.currentUser;
+  const { transactions, loading, refreshTransactions } = useTransactions(user?.uid);
+  const { isAdmin } = useUserRole(user?.uid) || { isAdmin: false };
   const { balances, addBalance, deleteBalance, updateBalance, getTotalWithBalances } = useBalances();
   const { formatCurrency } = useCurrency();
   const location = useLocation();
+
+  const totalIncome = useMemo(
+    () => transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+    [transactions]
+  );
+
+  const totalExpense = useMemo(
+    () => transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+    [transactions]
+  );
+
+  const totalBalance = initialBalance + totalIncome - totalExpense;
+  const finalTotal = getTotalWithBalances?.(totalBalance) ?? totalBalance;
 
   useEffect(() => {
     if (user?.uid) {
@@ -66,28 +60,38 @@ function Dashboard() {
   }, [user]);
 
   useEffect(() => {
-    if (user) loadTransactions();
-  }, [user, initialBalance]);
+    if (user?.uid && initialBalance !== 0) {
+      localStorage.setItem(`initialBalance_${user.uid}`, initialBalance.toString());
+    }
+  }, [initialBalance, user]);
 
-  // Process recurring transactions when user logs in
   useEffect(() => {
     if (user) {
       const checkRecurring = async () => {
         const added = await processRecurringTransactions(user.uid);
-        if (added > 0) {
-          loadTransactions();
+        if (added > 0 && refreshTransactions) {
+          refreshTransactions();
         }
       };
       checkRecurring();
     }
-  }, [user]);
+  }, [user, refreshTransactions]);
 
-  // Calcular despesas fixas das transações recorrentes
   useEffect(() => {
-    if (user) {
-      const loadFixedExpenses = async () => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    let isMounted = true;
+    
+    const loadFixedExpenses = async () => {
+      try {
         const recurringRef = collection(db, 'users', user.uid, 'recurring');
         const snapshot = await getDocs(recurringRef);
+        if (!isMounted) return;
+        
         let totalFixed = 0;
         snapshot.forEach(doc => {
           const rec = doc.data();
@@ -96,41 +100,15 @@ function Dashboard() {
           }
         });
         setFixedExpenses(totalFixed);
-      };
-      loadFixedExpenses();
-    }
-  }, [user]);
-
-  const loadTransactions = async () => {
-    setLoading(true);
-    const q = query(
-      collection(db, 'users', user.uid, 'transactions'),
-      orderBy('date', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    let balance = initialBalance;
-    let income = 0;
-    let expense = 0;
-    const transactionsData = [];
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data();
-      transactionsData.push({ id: doc.id, ...data });
-      if (data.type === 'income') {
-        balance += data.amount;
-        income += data.amount;
-      } else {
-        balance -= data.amount;
-        expense += data.amount;
+      } catch (error) {
+        console.error('Error loading fixed expenses:', error);
       }
-    });
+    };
     
-    setTransactions(transactionsData);
-    setTotalBalance(balance);
-    setTotalIncome(income);
-    setTotalExpense(expense);
-    setLoading(false);
-  };
+    loadFixedExpenses();
+    
+    return () => { isMounted = false; };
+  }, [user]);
 
   const handleAddBalance = async (e) => {
     e.preventDefault();
@@ -145,7 +123,11 @@ function Dashboard() {
   const handleEditBalance = async (e) => {
     e.preventDefault();
     if (!editingBalance || !newBalanceName) return;
-    await updateBalance(editingBalance.id, { name: newBalanceName, amount: parseFloat(newBalanceAmount), includeInTotal });
+    await updateBalance(editingBalance.id, { 
+      name: newBalanceName, 
+      amount: parseFloat(newBalanceAmount), 
+      includeInTotal 
+    });
     setEditingBalance(null);
     setNewBalanceName('');
     setNewBalanceAmount('');
@@ -168,12 +150,9 @@ function Dashboard() {
     setShowEditModal(true);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
-
-  const transactionTotal = totalBalance;
-  const finalTotal = getTotalWithBalances(transactionTotal);
+  }, []);
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -242,7 +221,6 @@ function Dashboard() {
               <SkeletonStats />
             ) : (
               <>
-                {/* 4 Stats Cards */}
                 <div className="stats-grid stats-grid-4">
                   <div className="stat-card balance">
                     <Wallet size={24} />
@@ -269,7 +247,6 @@ function Dashboard() {
                   </div>
                 </div>
 
-                {/* AI Assistant Full Width Card */}
                 <div className="ai-full-card" onClick={() => setChatOpen(true)}>
                   <div className="ai-full-content">
                     <Sparkles size={32} className="ai-full-icon" />
@@ -283,7 +260,6 @@ function Dashboard() {
               </>
             )}
 
-            {/* Add Balance Modal */}
             {showBalanceModal && (
               <div className="modal-overlay" onClick={() => setShowBalanceModal(false)}>
                 <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -320,7 +296,6 @@ function Dashboard() {
               </div>
             )}
 
-            {/* Edit Balance Modal */}
             {showEditModal && (
               <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
                 <div className="modal" onClick={(e) => e.stopPropagation()}>
@@ -357,7 +332,6 @@ function Dashboard() {
               </div>
             )}
 
-            {/* Custom Balances Section */}
             <div className="quick-actions">
               <div className="balances-header">
                 <h3>Your Balances</h3>
@@ -366,7 +340,7 @@ function Dashboard() {
                 {balances.length === 0 ? (
                   <p className="empty-balances">No balances yet. Click "New Balance" to create one.</p>
                 ) : (
-                  balances.map(balance => (
+                  balances?.map(balance => (
                     <div key={balance.id} className="balance-item">
                       <div className="balance-info">
                         <span className="balance-name">{balance.name}</span>
@@ -389,7 +363,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Balance Actions */}
             <div className="quick-actions">
               <h3>Balance Actions</h3>
               <div className="action-buttons balance-actions">
@@ -400,7 +373,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Quick Actions */}
             <div className="quick-actions">
               <h3>Quick Actions</h3>
               <div className="action-buttons">
@@ -415,7 +387,6 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Recent Activity Preview */}
             <div className="recent-preview">
               <h3>Recent Activity</h3>
               <p className="preview-text">

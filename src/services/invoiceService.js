@@ -62,20 +62,16 @@ export async function compressImage(file, maxWidth = 1200, maxHeight = 1200, qua
  * Extract text from image using OCR (Tesseract.js)
  */
 export async function extractTextFromImage(imageFile) {
-  console.log('🔍 Iniciando OCR com Tesseract.js...');
-  
   try {
     const result = await Tesseract.recognize(imageFile, 'eng+por', {
       logger: (progress) => {
-        console.log(`OCR Progress: ${(progress.progress * 100).toFixed(2)}%`);
+        // OCR progress tracking
       }
     });
     
     const text = result.data.text;
-    console.log('✅ OCR concluído. Texto extraído:', text.substring(0, 200));
     return text;
   } catch (error) {
-    console.error('❌ Erro no OCR:', error);
     throw new Error('Erro ao extrair texto da imagem. Tente novamente.');
   }
 }
@@ -84,8 +80,6 @@ export async function extractTextFromImage(imageFile) {
  * Parse invoice with Groq AI to extract: amount, category, date, description
  */
 export async function parseInvoiceWithAI(ocrText) {
-  console.log('🤖 Enviando para Groq AI para análise...');
-  
   try {
     const prompt = `You are a financial invoice analyzer. Extract invoice details from this OCR text.
 
@@ -123,8 +117,6 @@ Return ONLY this JSON format (no other text):
     // Clean response (remove markdown if present)
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const parsed = JSON.parse(text);
-
-    console.log('✅ IA Analysis complete:', parsed);
     
     // Validate and clean data
     return {
@@ -134,7 +126,6 @@ Return ONLY this JSON format (no other text):
       description: (parsed.description || 'Invoice purchase').substring(0, 100)
     };
   } catch (error) {
-    console.error('❌ Erro na análise da IA:', error);
     throw new Error('Erro ao analisar a fatura. Tente novamente.');
   }
 }
@@ -143,8 +134,6 @@ Return ONLY this JSON format (no other text):
  * Upload image to Firebase Storage
  */
 export async function uploadInvoiceImage(imageBlob, userId, invoiceDate) {
-  console.log('📤 Fazendo upload da fatura para Firebase Storage...');
-  
   try {
     const timestamp = Date.now();
     const fileName = `invoices/${userId}/${invoiceDate}_${timestamp}.jpg`;
@@ -154,10 +143,8 @@ export async function uploadInvoiceImage(imageBlob, userId, invoiceDate) {
       contentType: 'image/jpeg'
     });
     
-    console.log('✅ Upload concluído:', fileName);
     return fileName;
   } catch (error) {
-    console.error('❌ Erro no upload:', error);
     throw new Error('Erro ao fazer upload da imagem. Tente novamente.');
   }
 }
@@ -166,8 +153,6 @@ export async function uploadInvoiceImage(imageBlob, userId, invoiceDate) {
  * Create transaction from invoice data
  */
 export async function createTransactionFromInvoice(userId, invoiceData, imageStoragePath, balanceId) {
-  console.log('💾 Criando transação...');
-  
   try {
     const newTransaction = {
       type: 'expense',
@@ -185,8 +170,6 @@ export async function createTransactionFromInvoice(userId, invoiceData, imageSto
       collection(db, 'users', userId, 'transactions'),
       newTransaction
     );
-
-    console.log('✅ Transação criada:', docRef.id);
     
     return {
       id: docRef.id,
@@ -194,7 +177,6 @@ export async function createTransactionFromInvoice(userId, invoiceData, imageSto
       date: invoiceData.date
     };
   } catch (error) {
-    console.error('❌ Erro ao criar transação:', error);
     throw new Error('Erro ao salvar a transação. Tente novamente.');
   }
 }
@@ -205,10 +187,7 @@ export async function createTransactionFromInvoice(userId, invoiceData, imageSto
  */
 export async function processInvoice(imageFile, userId, balanceId, shouldSaveImage = false) {
   try {
-    console.log('🎯 Iniciando processamento da fatura...');
-
     // Step 1: Compress image
-    console.log('📸 Comprimindo imagem...');
     const compressedBlob = await compressImage(imageFile, 1200, 1200, 0.7);
     
     // Step 2: Extract text with OCR
@@ -231,11 +210,8 @@ export async function processInvoice(imageFile, userId, balanceId, shouldSaveIma
       try {
         storagePath = await uploadInvoiceImage(compressedBlob, userId, invoiceData.date);
       } catch (uploadError) {
-        console.warn('⚠️ Upload falhou, mas continuando sem guardar imagem:', uploadError.message);
-        // Continua mesmo sem guardar a imagem
+        // Upload failed, continue without storing image
       }
-    } else {
-      console.log('📸 Modo sem Storage: imagem não será guardada');
     }
     
     // Step 5: Create transaction

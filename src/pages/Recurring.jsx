@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query, getDoc } from 'firebase/firestore';
@@ -28,6 +28,7 @@ function Recurring() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [useCustomCategory, setUseCustomCategory] = useState(false);
   const user = auth.currentUser;
+  const { isAdmin } = useUserRole(user?.uid) || { isAdmin: false };
 
   const categories = ['Food', 'Transport', 'Shopping', 'Bills', 'Entertainment', 'Salary', 'Other'];
   const frequencies = ['monthly', 'weekly', 'yearly'];
@@ -35,11 +36,8 @@ function Recurring() {
   const { formatCurrency } = useCurrency();
   const { balances, loadBalances } = useBalances();
 
-  useEffect(() => {
-    if (user) loadRecurring();
-  }, [user]);
-
-  const loadRecurring = async () => {
+  const loadRecurring = useCallback(async () => {
+    if (!user) return;
     const q = query(collection(db, 'users', user.uid, 'recurring'));
     const querySnapshot = await getDocs(q);
     const data = [];
@@ -47,26 +45,40 @@ function Recurring() {
       data.push({ id: doc.id, ...doc.data() });
     });
     setRecurring(data);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) loadRecurring();
+  }, [user, loadRecurring]);
 
   const calculateFirstExecution = (frequency, startDateValue) => {
-    const now = new Date();
-    const start = new Date(startDateValue);
-    let first = new Date(start);
-    let maxIterations = 100;
-    
-    while (first <= now && maxIterations-- > 0) {
-      if (frequency === 'monthly') {
-        first.setMonth(first.getMonth() + 1);
-      } else if (frequency === 'weekly') {
-        first.setDate(first.getDate() + 7);
-      } else if (frequency === 'yearly') {
-        first.setFullYear(first.getFullYear() + 1);
-      }
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  
+  const start = new Date(startDateValue);
+  start.setHours(0, 0, 0, 0);
+  
+  // Se a data de início é hoje ou no futuro, retorna a própria data
+  if (start >= now) {
+    return start;
+  }
+  
+  // Se é no passado, calcula a próxima execução
+  let next = new Date(start);
+  let maxIterations = 100;
+  
+  while (next <= now && maxIterations-- > 0) {
+    if (frequency === 'monthly') {
+      next.setMonth(next.getMonth() + 1);
+    } else if (frequency === 'weekly') {
+      next.setDate(next.getDate() + 7);
+    } else if (frequency === 'yearly') {
+      next.setFullYear(next.getFullYear() + 1);
     }
-    
-    return first;
-  };
+  }
+  
+  return next;
+};
 
   const addRecurring = async (e) => {
     e.preventDefault();
@@ -220,9 +232,9 @@ function Recurring() {
     setShowForm(true);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await auth.signOut();
-  };
+  }, []);
 
   const formatDate = (date) => {
     if (!date) return 'Not scheduled';
@@ -230,17 +242,18 @@ function Recurring() {
     return d.toLocaleDateString();
   };
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
     { path: '/goals', icon: Target, label: 'Goals' },
     { path: '/budgets', icon: PieChart, label: 'Budgets' },
     { path: '/recurring', icon: RefreshCw, label: 'Recurring' },
-    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },  { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
+    { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
+    { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
-    { path: '/admin', icon: Settings, label: 'Admin' },
-  ];
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
+  ], [isAdmin]);
 
   return (
     <div className="app-layout">

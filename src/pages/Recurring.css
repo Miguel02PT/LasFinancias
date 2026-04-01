@@ -49,6 +49,30 @@
   font-size: 0.9rem;
   background: white;
   color: #1a202c;
+  transition: border-color 0.3s;
+}
+
+.recurring-form input:focus,
+.recurring-form select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Form validation styles */
+.recurring-form input:invalid,
+.recurring-form select:invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.recurring-form input:valid,
+.recurring-form select:valid {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.recurring-form input:required:placeholder-shown {
+  border-color: #fbbf24;
 }
 
 .dark-mode .recurring-form input,

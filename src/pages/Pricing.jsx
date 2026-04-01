@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
 import { Menu, X, Wallet, LogOut, Check, Zap, Crown } from 'lucide-react';

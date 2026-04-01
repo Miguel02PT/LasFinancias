@@ -51,13 +51,14 @@ body {
 /* Root container - SEM BARRINHAS LATERAIS */
 #root {
   width: 100%;
-  max-width: 100%;
+  max-width: 100vw;
   margin: 0 auto;
   text-align: center;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 
@@ -1386,6 +1387,7 @@ code {
 /* Garantir que o sidebar não ocupa espaço quando fechado */
 .sidebar {
   width: 280px;
+  max-width: 80vw;
   background: white;
   box-shadow: 2px 0 10px rgba(0,0,0,0.05);
   display: flex;
@@ -1396,7 +1398,8 @@ code {
   bottom: 0;
   z-index: 1000;
   transition: transform 0.3s ease;
-  transform: translateX(-100%); /* ← ADICIONAR ESTA LINHA */
+  transform: translateX(-100%);
+  overflow-y: auto;
 }
 
 .sidebar.open {

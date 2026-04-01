@@ -45,6 +45,30 @@
   border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.budget-form input:focus,
+.budget-form select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Form validation styles */
+.budget-form input:invalid,
+.budget-form select:invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.budget-form input:valid,
+.budget-form select:valid {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.budget-form input:required:placeholder-shown {
+  border-color: #fbbf24;
 }
 
 .budget-form button {
@@ -210,6 +234,7 @@
 }
 
 .empty-btn {
+  margin-top: 1rem;
   padding: 1rem 2rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -243,21 +268,6 @@
   color: #a0aec0;
 }
 
-.empty-btn {
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.empty-btn:hover {
-  transform: translateY(-2px);
-}
-
 /* ============================================
    MOBILE RESPONSIVE
    ============================================ */
@@ -265,27 +275,27 @@
   .budgets-content {
     padding: 1rem;
   }
-  
+
   .budget-form {
     flex-direction: column;
   }
-  
+
   .budget-form select,
   .budget-form input,
   .budget-form button {
     width: 100%;
   }
-  
+
   .budget-stats {
     flex-direction: column;
     gap: 0.25rem;
   }
-  
+
   .budget-actions button {
     min-width: 44px;
     min-height: 44px;
   }
-  
+
   .progress-bar {
     height: 10px;
   }

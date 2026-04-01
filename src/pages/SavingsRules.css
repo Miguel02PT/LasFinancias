@@ -67,6 +67,30 @@
   border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.rule-form input:focus,
+.rule-form select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Form validation styles */
+.rule-form input:invalid,
+.rule-form select:invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.rule-form input:valid,
+.rule-form select:valid {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.rule-form input:required:placeholder-shown {
+  border-color: #fbbf24;
 }
 
 .dark-mode .rule-form input,

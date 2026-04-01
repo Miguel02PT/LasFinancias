@@ -127,6 +127,23 @@
   box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
 }
 
+/* Form validation styles */
+.form-group input:invalid,
+.form-group textarea:invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.form-group input:valid,
+.form-group textarea:valid {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.form-group input:required:placeholder-shown {
+  border-color: #fbbf24;
+}
+
 /* Submit Button */
 .submit-feedback-btn {
   width: 100%;

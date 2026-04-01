@@ -20,11 +20,27 @@
   border: 2px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.9rem;
+  transition: border-color 0.3s;
 }
 
 .goal-form input:focus {
   outline: none;
   border-color: #667eea;
+}
+
+/* Form validation styles */
+.goal-form input:invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.goal-form input:valid {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.goal-form input:required:placeholder-shown {
+  border-color: #fbbf24;
 }
 
 .goal-form button {
@@ -541,29 +557,34 @@
   border-color: #2d3748;
 }
 
-/* Calculator results light mode fix */
-.calculator-results .result-stat {
-  color: #1a202c;
-}
-
-.dark-mode .calculator-results .result-stat {
-  color: #e2e8f0;
-}
-
-.result-stat span {
+/* Calculator results — scoped para não sobrescrever .success/.warning */
+.result-stat > span {
+  font-size: 0.85rem;
   color: #4a5568;
 }
 
-.dark-mode .result-stat span {
+.dark-mode .result-stat > span {
   color: #a0aec0;
 }
 
-.result-stat strong {
+.result-stat > strong {
+  font-size: 0.95rem;
   color: #1a202c;
 }
 
-.dark-mode .result-stat strong {
+.dark-mode .result-stat > strong {
   color: #e2e8f0;
+}
+
+/* Preservar cores dos estados success/warning */
+.result-stat.success > span,
+.result-stat.success > strong {
+  color: inherit;
+}
+
+.result-stat.warning > span,
+.result-stat.warning > strong {
+  color: inherit;
 }
 
 /* ============================================

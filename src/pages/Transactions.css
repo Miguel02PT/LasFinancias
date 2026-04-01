@@ -71,6 +71,37 @@
   border-color: #667eea;
 }
 
+/* Form validation styles */
+.transaction-form input:invalid,
+.transaction-form select:invalid {
+  border-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.transaction-form input:valid,
+.transaction-form select:valid {
+  border-color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.05);
+}
+
+.transaction-form input:required:placeholder-shown {
+  border-color: #fbbf24;
+}
+
+.form-error {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.form-error::before {
+  content: "⚠";
+  font-weight: bold;
+}
+
 .transaction-form button {
   padding: 0.75rem 1.5rem;
   border: none;

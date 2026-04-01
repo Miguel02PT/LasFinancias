@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { collection, query, orderBy, getDocs, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
-import { Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut, PlusCircle, Trash2, TrendingUp, Calculator, Calendar, ArrowRight, MessageSquare, PiggyBank, Plus } from 'lucide-react';
-import './Goals.css';
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc } from 'firebase/firestore';
+import {
+  Menu, X, Wallet, LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
+  PlusCircle, Trash2, TrendingUp, Calculator, MessageSquare, PiggyBank, Plus
+} from 'lucide-react';
 import { RefreshCw, PieChart } from 'lucide-react';
+import './Goals.css';
 import { useCurrency } from '../context/CurrencyContext';
 import { useBalances } from '../context/BalancesContext';
+import { useUserRole } from '../hooks/useUserRole';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { showSuccess, showError } from '../components/ToastWithUndo';
 
@@ -19,46 +24,44 @@ function Goals() {
   const [addAmount, setAddAmount] = useState('');
   const [addFromBalance, setAddFromBalance] = useState('');
   const [showCalculator, setShowCalculator] = useState(false);
-  
-  // Calculadora de poupança
+
   const [monthlySavings, setMonthlySavings] = useState('');
   const [savingsGoal, setSavingsGoal] = useState('');
   const [selectedBalanceForGoal, setSelectedBalanceForGoal] = useState('');
   const [projectionMonths, setProjectionMonths] = useState(12);
   const [calculatedResult, setCalculatedResult] = useState(null);
-  
+
   const user = auth.currentUser;
-  const { isAdmin } = useUserRole(user?.uid);
+  const { isAdmin } = useUserRole(user?.uid) || { isAdmin: false };
   const { formatCurrency } = useCurrency();
   const { balances, loadBalances } = useBalances();
+  const location = useLocation();
+
+  const loadGoals = useCallback(async () => {
+    if (!user) return;
+    const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
+    const goalsData = [];
+    querySnapshot.forEach((d) => {
+      goalsData.push({ id: d.id, ...d.data() });
+    });
+    setGoals(goalsData);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       loadGoals();
     }
-  }, [user]);
-
-  const loadGoals = async () => {
-    if (!user) return;
-    const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'goals'));
-    const goalsData = [];
-    querySnapshot.forEach((doc) => {
-      goalsData.push({ id: doc.id, ...doc.data() });
-    });
-    setGoals(goalsData);
-  };
+  }, [user, loadGoals]);
 
   const addGoal = async (e) => {
     e.preventDefault();
     if (!name || !targetAmount) return;
-
     await addDoc(collection(db, 'users', user.uid, 'goals'), {
       name,
       targetAmount: parseFloat(targetAmount),
       savedAmount: 0,
       createdAt: new Date()
     });
-
     setName('');
     setTargetAmount('');
     loadGoals();
@@ -76,38 +79,33 @@ function Goals() {
   const addFundsToGoal = async (goalId, amount, fromBalanceId) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
-    
+
     const addAmountValue = parseFloat(amount);
     if (isNaN(addAmountValue) || addAmountValue <= 0) {
       showError('Please enter a valid amount');
       return;
     }
-    
+
     const newSavedAmount = goal.savedAmount + addAmountValue;
     if (newSavedAmount > goal.targetAmount) {
       showError(`Cannot exceed goal target of ${formatCurrency(goal.targetAmount)}`);
       return;
     }
-    
+
     try {
-      // 1. Atualizar a meta
       const goalRef = doc(db, 'users', user.uid, 'goals', goalId);
       await updateDoc(goalRef, { savedAmount: newSavedAmount });
-      
-      // 2. Se veio de um balance, atualizar o balance (retirar o dinheiro)
+
       if (fromBalanceId) {
         const balance = balances.find(b => b.id === fromBalanceId);
         if (balance) {
           const newBalance = balance.amount - addAmountValue;
           const balanceRef = doc(db, 'users', user.uid, 'balances', fromBalanceId);
           await updateDoc(balanceRef, { amount: newBalance });
-          
-          // Recarregar balances
           if (loadBalances) await loadBalances();
         }
       }
-      
-      // 3. Criar transação de registro
+
       await addDoc(collection(db, 'users', user.uid, 'transactions'), {
         amount: addAmountValue,
         description: `Contribution to goal: ${goal.name}${fromBalanceId ? ` (from ${balances.find(b => b.id === fromBalanceId)?.name})` : ''}`,
@@ -118,7 +116,7 @@ function Goals() {
         goalId: goalId,
         fromBalanceId: fromBalanceId || null
       });
-      
+
       showSuccess(`${formatCurrency(addAmountValue)} added to "${goal.name}"!`);
       setAddAmount('');
       setAddFromBalance('');
@@ -135,15 +133,15 @@ function Goals() {
     const goal = parseFloat(savingsGoal);
     const selectedBalance = balances.find(b => b.id === selectedBalanceForGoal);
     const currentBalance = selectedBalance?.amount || 0;
-    
+
     if (isNaN(monthly) || monthly <= 0) {
       setCalculatedResult({ error: 'Please enter a valid monthly amount' });
       return;
     }
-    
+
     const projections = [];
     let savedSoFar = 0;
-    
+
     for (let i = 1; i <= projectionMonths; i++) {
       savedSoFar += monthly;
       projections.push({
@@ -152,7 +150,7 @@ function Goals() {
         totalWithBalance: currentBalance + savedSoFar
       });
     }
-    
+
     let monthsToGoal = null;
     if (goal && goal > 0) {
       let saved = 0;
@@ -163,13 +161,13 @@ function Goals() {
       }
       monthsToGoal = saved >= goal ? months : null;
     }
-    
+
     const finalSaved = projections[projections.length - 1]?.saved || 0;
-    
+
     setCalculatedResult({
       projections,
       monthsToGoal,
-      finalSaved: finalSaved,
+      finalSaved,
       finalBalanceWithCurrent: currentBalance + finalSaved,
       startBalance: currentBalance,
       monthlyAmount: monthly,
@@ -180,12 +178,10 @@ function Goals() {
 
   const createGoalFromCalculator = async () => {
     if (!savingsGoal) {
-      alert('Please enter a goal amount');
+      showError('Please enter a goal amount');
       return;
     }
-    
-    const goalName = savingsGoal ? `Save ${formatCurrency(parseFloat(savingsGoal))}` : 'Savings Goal';
-    
+    const goalName = `Save ${formatCurrency(parseFloat(savingsGoal))}`;
     await addDoc(collection(db, 'users', user.uid, 'goals'), {
       name: goalName,
       targetAmount: parseFloat(savingsGoal),
@@ -193,13 +189,16 @@ function Goals() {
       createdAt: new Date(),
       monthlyTarget: parseFloat(monthlySavings) || 0
     });
-    
-    alert('Goal created from your savings plan!');
+    showSuccess('Goal created from your savings plan!');
     setShowCalculator(false);
     loadGoals();
   };
 
-  const navItems = [
+  const handleLogout = useCallback(async () => {
+    await auth.signOut();
+  }, []);
+
+  const navItems = useMemo(() => [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/transactions', icon: Receipt, label: 'Transactions' },
     { path: '/reports', icon: BarChart3, label: 'Reports' },
@@ -209,12 +208,8 @@ function Goals() {
     { path: '/savings-rules', icon: PiggyBank, label: 'Auto-Save' },
     { path: '/feedback', icon: MessageSquare, label: 'Feedback' },
     { path: '/settings', icon: Settings, label: 'Settings' },
-    { path: '/admin', icon: Settings, label: 'Admin' },
-  ];
-
-  const handleLogout = async () => {
-    await auth.signOut();
-  };
+    ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
+  ], [isAdmin]);
 
   return (
     <div className="app-layout">
@@ -228,7 +223,11 @@ function Goals() {
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
-            <Link to={item.path} key={item.path} className={`nav-item ${item.path === '/goals' ? 'active' : ''}`}>
+            <Link
+              to={item.path}
+              key={item.path}
+              className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
+            >
               <item.icon size={20} />
               <span>{item.label}</span>
             </Link>
@@ -257,10 +256,9 @@ function Goals() {
         </header>
 
         <div className="goals-content">
-          {/* Savings Calculator Modal */}
-          <AnimatePresence>
+            <AnimatePresence>
             {showCalculator && (
-              <motion.div 
+              <motion.div
                 className="calculator-modal"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -269,7 +267,7 @@ function Goals() {
                 <div className="calculator-card">
                   <h3>📊 Savings Projection Calculator</h3>
                   <p className="calculator-desc">See how your money grows with monthly savings!</p>
-                  
+
                   <div className="calculator-form">
                     <div className="calc-field">
                       <label>Monthly Savings Amount</label>
@@ -280,7 +278,7 @@ function Goals() {
                         onChange={(e) => setMonthlySavings(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="calc-field">
                       <label>Goal Amount</label>
                       <input
@@ -290,7 +288,7 @@ function Goals() {
                         onChange={(e) => setSavingsGoal(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="calc-field">
                       <label>Projection Period (months)</label>
                       <select value={projectionMonths} onChange={(e) => setProjectionMonths(parseInt(e.target.value))}>
@@ -302,12 +300,18 @@ function Goals() {
                         <option value={60}>5 years (60 months)</option>
                       </select>
                     </div>
-                    
+
                     <button className="calc-btn" onClick={calculateProjection}>
                       <TrendingUp size={16} /> Calculate Projection
                     </button>
                   </div>
-                  
+
+                  {calculatedResult?.error && (
+                    <p style={{ color: '#e53e3e', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                      {calculatedResult.error}
+                    </p>
+                  )}
+
                   {calculatedResult && !calculatedResult.error && (
                     <div className="calculator-results">
                       <h4>📈 Savings Projection</h4>
@@ -320,19 +324,19 @@ function Goals() {
                           <span>💵 Total Saved after {projectionMonths} months:</span>
                           <strong>{formatCurrency(calculatedResult.finalSaved)}</strong>
                         </div>
-                        
+
                         {calculatedResult.goal && (
                           <div className={`result-stat ${calculatedResult.monthsToGoal ? 'success' : 'warning'}`}>
                             <span>🎯 Goal: {formatCurrency(calculatedResult.goal)}</span>
                             <strong>
-                              {calculatedResult.monthsToGoal 
-                                ? `Reached in ${calculatedResult.monthsToGoal} months! 🎉` 
+                              {calculatedResult.monthsToGoal
+                                ? `Reached in ${calculatedResult.monthsToGoal} months! 🎉`
                                 : `Not reached in ${projectionMonths} months (need ${formatCurrency(calculatedResult.goal - calculatedResult.finalSaved)} more)`}
                             </strong>
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="calculator-actions">
                         <button className="create-goal-btn" onClick={createGoalFromCalculator}>
                           <Target size={16} /> Create Goal from This Plan
@@ -340,7 +344,7 @@ function Goals() {
                       </div>
                     </div>
                   )}
-                  
+
                   <button className="close-calc-btn" onClick={() => setShowCalculator(false)}>
                     Close
                   </button>
@@ -348,8 +352,7 @@ function Goals() {
               </motion.div>
             )}
           </AnimatePresence>
-          
-          {/* Add Goal Form */}
+
           <form className="goal-form" onSubmit={addGoal}>
             <input
               type="text"
@@ -370,7 +373,6 @@ function Goals() {
             </button>
           </form>
 
-          {/* Goals List */}
           <div className="goals-list">
             <h3>Your Goals</h3>
             {goals.length === 0 ? (
@@ -389,8 +391,8 @@ function Goals() {
                       <h3>{goal.name}</h3>
                       <p>Target: {formatCurrency(goal.targetAmount)}</p>
                       <div className="progress-bar">
-                        <div 
-                          className="progress-fill" 
+                        <div
+                          className="progress-fill"
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
@@ -409,8 +411,8 @@ function Goals() {
                       )}
                     </div>
                     <div className="goal-actions">
-                      <button 
-                        onClick={() => setShowAddFunds(goal.id)} 
+                      <button
+                        onClick={() => setShowAddFunds(goal.id)}
                         className="add-funds-btn"
                       >
                         <Plus size={16} /> Add Funds
@@ -419,8 +421,7 @@ function Goals() {
                         <Trash2 size={18} />
                       </button>
                     </div>
-                    
-                    {/* Add Funds Modal for this goal */}
+
                     {showAddFunds === goal.id && (
                       <div className="add-funds-modal">
                         <div className="add-funds-content">
@@ -431,8 +432,8 @@ function Goals() {
                             value={addAmount}
                             onChange={(e) => setAddAmount(e.target.value)}
                           />
-                          <select 
-                            value={addFromBalance} 
+                          <select
+                            value={addFromBalance}
                             onChange={(e) => setAddFromBalance(e.target.value)}
                           >
                             <option value="">From where?</option>

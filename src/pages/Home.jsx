@@ -1,10 +1,7 @@
 import { Link } from 'react-router-dom';
-import { Wallet, TrendingUp, Shield, Target, BarChart3, Sparkles, Check, ArrowRight, Star, Zap } from 'lucide-react';
+import { Wallet, TrendingUp, Shield, Target, BarChart3, Sparkles, Check, ArrowRight } from 'lucide-react';
 import './Home.css';
 
-
-function LandingPage({ user }) {
-  // Home.jsx - substituir os plans
 const plans = [
   {
     name: 'Free',
@@ -38,7 +35,7 @@ const plans = [
     popular: true
   },
   {
-    name: 'Premium',
+    name: 'Pro Plus',
     price: '€9.99',
     period: 'per month',
     description: 'Unlimited power users',
@@ -49,24 +46,24 @@ const plans = [
       'Savings rules & automation',
       'Priority support'
     ],
-    buttonText: 'Get Premium',
+    buttonText: 'Get Pro Plus',
     buttonVariant: 'primary',
     popular: false
   }
 ];
 
-  const features = [
-    { icon: Wallet, title: 'Track Everything', description: 'Log income and expenses with categories to see where your money goes' },
-    { icon: BarChart3, title: 'Visual Reports', description: 'Beautiful charts and graphs to understand your spending patterns' },
-    { icon: Target, title: 'Set Goals', description: 'Create savings goals and track your progress over time' },
-    { icon: TrendingUp, title: 'AI Insights', description: 'Get personalized financial advice from our AI assistant' },
-    { icon: Shield, title: 'Secure & Private', description: 'Your data is encrypted and only accessible by you' },
-    { icon: Sparkles, title: 'Auto-Save', description: 'Automatically save a percentage of your income to your goals' }
-  ];
+const features = [
+  { icon: Wallet, title: 'Track Everything', description: 'Log income and expenses with categories to see where your money goes' },
+  { icon: BarChart3, title: 'Visual Reports', description: 'Beautiful charts and graphs to understand your spending patterns' },
+  { icon: Target, title: 'Set Goals', description: 'Create savings goals and track your progress over time' },
+  { icon: TrendingUp, title: 'AI Insights', description: 'Get personalized financial advice from our AI assistant' },
+  { icon: Shield, title: 'Secure & Private', description: 'Your data is encrypted and only accessible by you' },
+  { icon: Sparkles, title: 'Auto-Save', description: 'Automatically save a percentage of your income to your goals' }
+];
 
+function LandingPage({ user }) {
   return (
     <div className="landing-page">
-      {/* Hero Section */}
       <section className="hero-section">
         <nav className="landing-nav">
           <div className="nav-brand">
@@ -103,31 +100,16 @@ const plans = [
           <div className="hero-buttons">
             {!user && (
               <Link to="/login" className="btn-hero-primary">
-                Start Free <span className="no-card"></span>
+                Start Free
               </Link>
             )}
             <a href="#features" className="btn-hero-secondary">
               Learn More
             </a>
           </div>
-          <div className="hero-stats">
-            <div className="stat">
-              <strong>10K+</strong>
-              <span>Active Users</span>
-            </div>
-            <div className="stat">
-              <strong>$2M+</strong>
-              <span>Money Tracked</span>
-            </div>
-            <div className="stat">
-              <strong>98%</strong>
-              <span>Satisfaction Rate</span>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* Features Section */}
       <section id="features" className="features-section">
         <div className="section-header">
           <h2>Why Choose LasFinancias?</h2>
@@ -144,7 +126,6 @@ const plans = [
         </div>
       </section>
 
-      {/* Pricing Section */}
       <section id="pricing" className="pricing-section">
         <div className="section-header">
           <h2>Simple, Transparent Pricing</h2>
@@ -168,8 +149,8 @@ const plans = [
                   </li>
                 ))}
               </ul>
-              <Link 
-                to={user ? "/dashboard" : "/login"} 
+              <Link
+                to={user ? "/dashboard" : "/login"}
                 className={`pricing-btn ${plan.buttonVariant === 'primary' ? 'btn-primary' : 'btn-outline'}`}
               >
                 {plan.buttonText}
@@ -180,7 +161,6 @@ const plans = [
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="cta-section">
         <div className="cta-content">
           <h2>Ready to take control of your finances?</h2>
@@ -197,7 +177,6 @@ const plans = [
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="landing-footer">
         <div className="footer-content">
           <div className="footer-brand">
@@ -207,9 +186,9 @@ const plans = [
           <div className="footer-links">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Contact</a>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/contact">Contact</Link>
           </div>
           <div className="footer-copyright">
             <p>© 2026 LasFinancias. All rights reserved.</p>
