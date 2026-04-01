@@ -1,47 +1,34 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+// src/pages/Pricing.jsx
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
-import { Menu, X, Wallet, LogOut, Check, Zap, Crown } from 'lucide-react';
+import { Menu, X, Wallet, LogOut, Check, Zap, Crown, Loader2 } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
-import { createCheckoutSession, createBillingPortalSession } from '../services/stripeCheckout';
+import { createCheckout } from '../services/lemonSqueezy';
+import { showError, showSuccess } from '../components/Toast';
 import './Pricing.css';
 
 function Pricing() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentPlan, setCurrentPlan] = useState('free');
-  const [stripeCustomerId, setStripeCustomerId] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [upgrading, setUpgrading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const user = auth.currentUser;
 
   useEffect(() => {
     loadCurrentPlan();
   }, [user]);
 
-  useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    if (p.get('checkout') === 'success') {
-      setMessage('Payment received. Your plan will update in a few seconds.');
-      window.history.replaceState({}, '', '/pricing');
-    }
-    if (p.get('checkout') === 'cancel') {
-      setError('Checkout was cancelled.');
-      window.history.replaceState({}, '', '/pricing');
-    }
-  }, []);
-
   const loadCurrentPlan = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (userDoc.exists()) {
-        const d = userDoc.data();
-        setCurrentPlan(d?.subscription || 'free');
-        setStripeCustomerId(d?.stripeCustomerId || null);
+        setCurrentPlan(userDoc.data()?.subscription || 'free');
       }
     } catch (err) {
       console.error('Failed to load plan:', err);
@@ -50,49 +37,37 @@ function Pricing() {
     }
   };
 
-  const handleUpgrade = async (newPlan) => {
-    if (newPlan === currentPlan) {
-      setError('You are already on this plan.');
+  const handleSubscribe = async (variantId, planName) => {
+    if (!user) {
+      window.location.href = '/login';
       return;
     }
 
-    setUpgrading(true);
-    setError('');
-    setMessage('');
-
-    try {
-      const { url } = await createCheckoutSession(newPlan);
-      if (url) window.location.href = url;
-    } catch (err) {
-      setError(err.message || 'Could not start checkout.');
-    } finally {
-      setUpgrading(false);
+    if (currentPlan === planName) {
+      showError('You are already on this plan');
+      return;
     }
-  };
 
-  const handleDowngrade = async () => {
-    setUpgrading(true);
-    setError('');
-    setMessage('');
+    setCheckoutLoading(true);
 
     try {
-      if (stripeCustomerId) {
-        const { url } = await createBillingPortalSession();
-        if (url) window.location.href = url;
+      const checkoutUrl = await createCheckout({
+        variantId,
+        userId: user.uid,
+        userEmail: user.email
+      });
+
+      if (checkoutUrl) {
+        window.location.href = checkoutUrl;
       } else {
-        setError(
-          'To cancel or switch to Free, you need an active Stripe subscription. Contact support if you need help.'
-        );
+        throw new Error('No checkout URL returned');
       }
     } catch (err) {
-      setError(err.message || 'Could not open the billing portal.');
+      console.error('Checkout error:', err);
+      showError(err.message || 'Could not start checkout. Please try again.');
     } finally {
-      setUpgrading(false);
+      setCheckoutLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await auth.signOut();
   };
 
   const plans = [
@@ -103,6 +78,7 @@ function Pricing() {
       period: 'forever',
       description: 'Core tools to get started',
       icon: Wallet,
+      variantId: null,
       features: [
         'Unlimited transactions',
         'Unlimited budgets',
@@ -110,9 +86,8 @@ function Pricing() {
         'Multiple balances',
         'Real-time sync'
       ],
-      cta: 'Current plan',
-      color: '#94a3b8',
-      textColor: '#0f172a'
+      cta: currentPlan === 'free' ? 'Current plan' : 'Current plan',
+      color: '#94a3b8'
     },
     {
       id: 'pro',
@@ -122,17 +97,17 @@ function Pricing() {
       description: 'Scan receipts and use AI',
       icon: Zap,
       featured: true,
+      variantId: 1460089,
       features: [
         'Everything in Free',
         'Invoice scanner (OCR)',
         'AI chat assistant',
         'Financial insights',
-        '100 invoice scans / month',
+        '5 invoice scans per day',
         'Priority support'
       ],
-      cta: 'Upgrade to Pro',
-      color: '#6366f1',
-      textColor: '#ffffff'
+      cta: currentPlan === 'pro' ? 'Current plan' : 'Upgrade to Pro',
+      color: '#6366f1'
     },
     {
       id: 'fulltime',
@@ -141,6 +116,7 @@ function Pricing() {
       period: '/month',
       description: 'Unlimited scans & AI',
       icon: Crown,
+      variantId: 1460101,
       features: [
         'Everything in Pro',
         'Unlimited invoice scans',
@@ -149,11 +125,14 @@ function Pricing() {
         'Advanced analytics',
         'Priority support'
       ],
-      cta: 'Get Premium',
-      color: '#059669',
-      textColor: '#ffffff'
+      cta: currentPlan === 'fulltime' ? 'Current plan' : 'Get Premium',
+      color: '#059669'
     }
   ];
+
+  const handleLogout = async () => {
+    await auth.signOut();
+  };
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard' },
@@ -164,7 +143,7 @@ function Pricing() {
   if (loading) {
     return (
       <div className="pricing-page-loading">
-        <p>Loading…</p>
+        <p>Loading...</p>
       </div>
     );
   }
@@ -212,17 +191,15 @@ function Pricing() {
             <span className="pricing-hero__eyebrow">Plans</span>
             <h2 className="pricing-hero__title">Pick the plan that fits you</h2>
             <p className="pricing-hero__lead">
-              Start free. Upgrade when you want invoice scanning, AI, and automation. Secure payments with Stripe.
+              Start free. Upgrade when you want invoice scanning, AI, and automation. Secure payments with Lemon Squeezy.
             </p>
           </header>
-
-          {message && <div className="success-banner">{message}</div>}
-          {error && <div className="error-banner">{error}</div>}
 
           <div className="pricing-cards-grid">
             {plans.map(plan => {
               const Icon = plan.icon;
               const isCurrentPlan = currentPlan === plan.id;
+              const isProcessing = checkoutLoading && plan.variantId;
 
               return (
                 <div
@@ -238,7 +215,7 @@ function Pricing() {
                         className="plan-header__icon"
                         style={{
                           background: plan.color,
-                          color: plan.textColor
+                          color: '#ffffff'
                         }}
                       >
                         <Icon size={24} strokeWidth={2} />
@@ -269,20 +246,30 @@ function Pricing() {
                     className={`plan-button ${isCurrentPlan ? 'current' : ''}`}
                     style={{
                       background: isCurrentPlan ? undefined : plan.color,
-                      color: isCurrentPlan ? undefined : plan.textColor,
+                      color: isCurrentPlan ? undefined : '#ffffff',
                       borderColor: plan.color
                     }}
                     onClick={() => {
                       if (isCurrentPlan) return;
                       if (plan.id === 'free') {
-                        handleDowngrade();
-                      } else {
-                        handleUpgrade(plan.id);
+                        // Downgrade: show message
+                        showError('To cancel your subscription, please manage it in your Lemon Squeezy customer portal.');
+                      } else if (plan.variantId) {
+                        handleSubscribe(plan.variantId, plan.id);
                       }
                     }}
-                    disabled={upgrading}
+                    disabled={isCurrentPlan || isProcessing}
                   >
-                    {upgrading ? 'Processing…' : isCurrentPlan ? 'Current plan' : plan.cta}
+                    {isProcessing ? (
+                      <>
+                        <Loader2 size={16} className="spinning" />
+                        Processing...
+                      </>
+                    ) : isCurrentPlan ? (
+                      'Current plan'
+                    ) : (
+                      plan.cta
+                    )}
                   </button>
                 </div>
               );
@@ -295,8 +282,8 @@ function Pricing() {
             <div className="faq-item">
               <h4>Can I change plans anytime?</h4>
               <p>
-                Yes. Upgrades go through secure checkout. To cancel or move to Free, use the Free plan button to open
-                the Stripe billing portal (when you have an active subscription).
+                Yes. Upgrades go through secure checkout. To cancel or move to Free, manage your subscription in the
+                Lemon Squeezy customer portal.
               </p>
             </div>
 
@@ -316,8 +303,7 @@ function Pricing() {
             <div className="faq-item">
               <h4>How does billing work?</h4>
               <p>
-                Payments are processed by Stripe. After a successful payment, your plan updates automatically. Manage
-                cards and invoices in the billing portal.
+                Payments are processed by Lemon Squeezy. After a successful payment, your plan updates automatically.
               </p>
             </div>
           </section>
