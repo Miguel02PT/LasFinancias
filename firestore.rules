@@ -1,6 +1,4 @@
 // Firebase Firestore Security Rules
-// Para: c:\Users\josef\financias-app\firestore.rules
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -12,22 +10,43 @@ service cloud.firestore {
         request.resource.data.subscription == 'free';
       // Plano e Stripe só via Cloud Functions / Admin (webhooks)
       allow update: if request.auth.uid == userId &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        !(request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'subscription', 'stripeCustomerId', 'stripeSubscriptionId', 'subscriptionStatus'
-        ]);
+        ]));
       allow delete: if false; // Nunca deletar user
       
       // Subcollections
-      match /transactions/{document=**} {
+      match /transactions/{document} {
         allow read, write: if request.auth.uid == userId;
         allow delete: if request.auth.uid == userId;
       }
       
-      match /recurring/{document=**} {
+      match /recurring/{document} {
         allow read, write: if request.auth.uid == userId;
       }
       
-      match /featureUsage/{document=**} {
+      match /featureUsage/{document} {
+        allow read: if request.auth.uid == userId;
+        allow create: if request.auth.uid == userId;
+      }
+      
+      match /budgets/{document} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /goals/{document} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /balances/{document} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /savingsRules/{document} {
+        allow read, write: if request.auth.uid == userId;
+      }
+      
+      match /feedback/{document} {
         allow read: if request.auth.uid == userId;
         allow create: if request.auth.uid == userId;
       }
@@ -39,15 +58,11 @@ service cloud.firestore {
       allow read: if request.auth.uid == resource.data.userId;
       
       // Permitir que Cloud Functions/Admin SDK crie
-      // (em produção, use apenas através de Stripe webhook)
       allow create: if false;
       
       // Permitir update apenas para fields específicos
       allow update: if request.auth.uid == resource.data.userId &&
-                       request.resource.data.keys().hasOnly(['status', 'renewalDate', 'features']) &&
-                       resource.data.keys().hasOnly(['userId', 'plan', 'status', 'startDate', 'renewalDate', 
-                                                      'price', 'billingCycle', 'invoiceScansLimit', 'features', 
-                                                      'paymentInfo', 'createdAt', 'upgradedAt', 'cancelledAt']);
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'renewalDate', 'features']);
       
       // Nunca deletar (apenas cancel/downgrade)
       allow delete: if false;
@@ -61,7 +76,7 @@ service cloud.firestore {
     }
     
     // Public collections (se houver)
-    match /pricing/{document=**} {
+    match /pricing/{document} {
       allow read: if true; // Plans públicos
       allow write: if false;
     }
