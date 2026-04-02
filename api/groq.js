@@ -1,13 +1,16 @@
-// api/groq.js
+// api/groq.js - versão corrigida
 export default async function handler(req, res) {
-  // Só aceita POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { model, messages, temperature, max_tokens } = req.body;
+  // Buscar userId do header (enviado pelo frontend)
+  const userId = req.headers['x-user-id'];
   
-  // Buscar a API key do ambiente
+  // Rate limiting simples (opcional - podes remover esta secção)
+  // Para já, recomendo remover e adicionar depois se necessário
+
+  const { model, messages, temperature, max_tokens } = req.body;
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
   if (!GROQ_API_KEY) {
