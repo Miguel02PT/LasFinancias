@@ -1,14 +1,37 @@
-// api/groq.js - versão corrigida
+// api/groq.js - Rate limiting em memória (sem dependências externas)
+const rateLimitMap = new Map();
+
+// Limpar o mapa a cada hora (opcional, para não acumular memória)
+setInterval(() => {
+  rateLimitMap.clear();
+}, 60 * 60 * 1000); // 1 hora
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Buscar userId do header (enviado pelo frontend)
-  const userId = req.headers['x-user-id'];
+  // Rate limiting por IP
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'localhost';
+  const now = Date.now();
+  const windowMs = 60 * 1000; // 1 minuto
+  const maxRequests = 10;
+
+  if (!rateLimitMap.has(ip)) {
+    rateLimitMap.set(ip, []);
+  }
+
+  const timestamps = rateLimitMap.get(ip).filter(t => now - t < windowMs);
   
-  // Rate limiting simples (opcional - podes remover esta secção)
-  // Para já, recomendo remover e adicionar depois se necessário
+  if (timestamps.length >= maxRequests) {
+    return res.status(429).json({ 
+      error: 'Too many requests. Please wait a moment.',
+      retryAfter: Math.ceil((windowMs - (now - timestamps[0])) / 1000)
+    });
+  }
+
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
 
   const { model, messages, temperature, max_tokens } = req.body;
   const GROQ_API_KEY = process.env.GROQ_API_KEY;
