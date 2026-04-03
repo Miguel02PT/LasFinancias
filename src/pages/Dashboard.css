@@ -1034,3 +1034,260 @@
     font-size: 0.9rem;
   }
 }
+
+/* ============================================
+   UPGRADE CARD (para users FREE)
+   ============================================ */
+.upgrade-card {
+    background: linear-gradient(135deg, #2d6a4f 0%, #1b4332 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+.upgrade-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+}
+
+.upgrade-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.upgrade-card-icon {
+  color: #ffd700;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-card-text {
+  flex: 1;
+  text-align: left;
+}
+
+.upgrade-card-text h3 {
+  font-size: 1.3rem;
+  margin: 0 0 0.3rem 0;
+  color: white;
+  font-weight: 700;
+}
+
+.upgrade-card-text p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 0.3rem 0;
+  font-size: 0.9rem;
+}
+
+.upgrade-card-hint {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.2rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.upgrade-card-btn {
+  background: white;
+  color: #ea580c;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 40px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s;
+}
+
+.upgrade-card-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================
+   UPGRADE POPUP MODAL
+   ============================================ */
+.upgrade-popup-modal {
+  background: white;
+  border-radius: 24px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  text-align: center;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.dark-mode .upgrade-popup-modal {
+  background: #1a1a2e;
+  border: 1px solid #2d3748;
+}
+
+.close-popup {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #718096;
+  transition: all 0.2s;
+}
+
+.close-popup:hover {
+  color: #1a202c;
+  transform: scale(1.1);
+}
+
+.dark-mode .close-popup:hover {
+  color: #e2e8f0;
+}
+
+.popup-icon {
+  margin-bottom: 1rem;
+}
+
+.popup-icon svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.upgrade-popup-modal h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #1a202c;
+}
+
+.dark-mode .upgrade-popup-modal h2 {
+  color: #e2e8f0;
+}
+
+.upgrade-popup-modal p {
+  color: #4a5568;
+  margin-bottom: 1rem;
+}
+
+.dark-mode .upgrade-popup-modal p {
+  color: #a0aec0;
+}
+
+.popup-features {
+  text-align: left;
+  margin: 1.5rem 0;
+  padding-left: 1.5rem;
+  list-style: none;
+}
+
+.popup-features li {
+  margin-bottom: 0.75rem;
+  color: #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dark-mode .popup-features li {
+  color: #cbd5e1;
+}
+
+.popup-features li::before {
+  content: "✓";
+  color: #22c55e;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.popup-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.popup-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  border-radius: 40px;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+
+.popup-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.popup-btn-secondary {
+  padding: 0.75rem 1.5rem;
+  background: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  border-radius: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.popup-btn-secondary:hover {
+  background: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.dark-mode .popup-btn-secondary {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.popup-note {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 1rem;
+}
+
+/* Responsive para Upgrade Card */
+@media (max-width: 768px) {
+  .upgrade-card-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .upgrade-card-text {
+    text-align: center;
+  }
+  
+  .upgrade-card-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .upgrade-popup-modal {
+    padding: 1.5rem;
+    width: 95%;
+  }
+  
+  .popup-features li {
+    font-size: 0.85rem;
+  }
+}

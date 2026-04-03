@@ -99,3 +99,79 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Forgot Password */
+.forgot-password {
+  text-align: right;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.forgot-password-btn:hover {
+  color: #5a67d8;
+}
+
+/* Reset Password */
+.reset-info {
+  font-size: 0.85rem;
+  color: #718096;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.success-message {
+  background: #c6f6d5;
+  color: #22543d;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.back-to-login-btn {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  padding: 0.75rem;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #4a5568;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+.back-to-login-btn:hover {
+  background: #f7fafc;
+}
+
+.dark-mode .reset-info {
+  color: #a0aec0;
+}
+
+.dark-mode .success-message {
+  background: #2d6a4f;
+  color: #d4f1e6;
+}
+
+.dark-mode .back-to-login-btn {
+  border-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.dark-mode .back-to-login-btn:hover {
+  background: #2d3748;
+}

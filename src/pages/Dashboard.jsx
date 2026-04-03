@@ -4,10 +4,12 @@ import { useBalances } from '../context/BalancesContext';
 import { useUserRole } from '../hooks/useUserRole';
 import { Link, useLocation } from 'react-router-dom';
 import { auth, db } from '../firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 import { 
   LayoutDashboard, Receipt, BarChart3, Target, Settings, LogOut,
   TrendingUp, TrendingDown, Wallet, Menu, PieChart, X, Trash2,
-  PlusCircle, Edit2, RefreshCw, Sparkles, PiggyBank, MessageSquare
+  PlusCircle, Edit2, RefreshCw, Sparkles, PiggyBank, MessageSquare,
+  Crown, Zap, XCircle
 } from 'lucide-react';
 import './Dashboard.css';
 import AIChat from '../components/AIChat';
@@ -29,6 +31,9 @@ function Dashboard() {
   const [editingBalance, setEditingBalance] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [fixedExpenses, setFixedExpenses] = useState(0);
+  const [userPlan, setUserPlan] = useState('free');
+  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const [popupTimer, setPopupTimer] = useState(null);
   
   const user = auth.currentUser;
   const { transactions, loading, refreshTransactions } = useTransactions(user?.uid);
@@ -36,6 +41,33 @@ function Dashboard() {
   const { balances, addBalance, deleteBalance, updateBalance, getTotalWithBalances } = useBalances();
   const { formatCurrency } = useCurrency();
   const location = useLocation();
+
+  // Carregar o plano do user
+  useEffect(() => {
+    const loadUserPlan = async () => {
+      if (user?.uid) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        if (userDoc.exists()) {
+          const plan = userDoc.data().subscription || 'free';
+          setUserPlan(plan);
+        }
+      }
+    };
+    loadUserPlan();
+  }, [user]);
+
+  // Timer para pop-up de upgrade (apenas para users FREE)
+  useEffect(() => {
+    if (userPlan === 'free' && !showUpgradePopup) {
+      // Mostrar pop-up após 60 segundos (1 minuto)
+      const timer = setTimeout(() => {
+        setShowUpgradePopup(true);
+      }, 300000);
+      setPopupTimer(timer);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [userPlan, showUpgradePopup]);
 
   const totalIncome = useMemo(
     () => transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
@@ -167,6 +199,9 @@ function Dashboard() {
     ...(isAdmin ? [{ path: '/admin', icon: Settings, label: 'Admin' }] : [])
   ];
 
+  // Verificar se é user FREE para mostrar upgrade card
+  const isFreeUser = userPlan === 'free';
+
   return (
     <div className="app-layout">
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -247,6 +282,7 @@ function Dashboard() {
                   </div>
                 </div>
 
+                {/* AI Assistant Card */}
                 <div className="ai-full-card" onClick={() => setChatOpen(true)}>
                   <div className="ai-full-content">
                     <Sparkles size={32} className="ai-full-icon" />
@@ -257,9 +293,61 @@ function Dashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* UPGRADE CARD - Apenas para users FREE */}
+                {isFreeUser && (
+                  <div className="upgrade-card" onClick={() => window.location.href = '/pricing'}>
+                    <div className="upgrade-card-content">
+                      <div className="upgrade-card-icon">
+                        <Crown size={32} />
+                      </div>
+                      <div className="upgrade-card-text">
+                        <h3>Unlock Premium Features</h3>
+                        <p>Get AI chat, invoice scanner, savings rules and much more!</p>
+                        <span className="upgrade-card-hint">🚀 Upgrade to Pro starting from €4.99/month</span>
+                      </div>
+                      <button className="upgrade-card-btn">
+                        Upgrade Now <Zap size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
+            {/* UPGRADE POPUP MODAL - Apenas para users FREE */}
+            {showUpgradePopup && isFreeUser && (
+              <div className="modal-overlay" onClick={() => setShowUpgradePopup(false)}>
+                <div className="upgrade-popup-modal" onClick={(e) => e.stopPropagation()}>
+                  <button className="close-popup" onClick={() => setShowUpgradePopup(false)}>
+                    <XCircle size={24} />
+                  </button>
+                  <div className="popup-icon">
+                    <Crown size={48} color="#ffd700" />
+                  </div>
+                  <h2>Enjoying LasFinancias? 🎉</h2>
+                  <p>You're currently on the <strong>FREE plan</strong>. Upgrade to Pro or Premium to unlock:</p>
+                  <ul className="popup-features">
+                    <li>🤖 <strong>AI Chat Assistant</strong> - Personalized financial advice</li>
+                    <li>📸 <strong>Invoice Scanner</strong> - Scan receipts with OCR</li>
+                    <li>⚡ <strong>Auto-Save Rules</strong> - Save money automatically</li>
+                    <li>📊 <strong>Advanced Analytics</strong> - Deeper insights</li>
+                    <li>🚀 <strong>Unlimited everything</strong> on Premium plan</li>
+                  </ul>
+                  <div className="popup-buttons">
+                    <Link to="/pricing" className="popup-btn-primary">
+                      View Plans <Zap size={18} />
+                    </Link>
+                    <button onClick={() => setShowUpgradePopup(false)} className="popup-btn-secondary">
+                      Maybe Later
+                    </button>
+                  </div>
+                  <p className="popup-note">⏰ This popup will appear again in a few minutes.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Modals e resto do conteúdo (mantido igual) */}
             {showBalanceModal && (
               <div className="modal-overlay" onClick={() => setShowBalanceModal(false)}>
                 <div className="modal" onClick={(e) => e.stopPropagation()}>
