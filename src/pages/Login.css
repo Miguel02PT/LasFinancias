@@ -113,7 +113,7 @@
   color: #667eea;
   font-size: 0.8rem;
   cursor: pointer;
-  text-decoration: underline;
+  text-decoration: none;
   padding: 0;
 }
 
@@ -174,4 +174,21 @@
 
 .dark-mode .back-to-login-btn:hover {
   background: #2d3748;
+}
+
+.forgot-password {
+  text-align: right;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;  /* ← esta é a linha */
+}
+
+.sign-in-form {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+}
+
+.dark-mode .forgot-password {
+  border-bottom-color: #2d3748;
 }

@@ -116,7 +116,7 @@ function Login() {
             {error && <div className="error">{error}</div>}
             {resetMessage && <div className="success-message">{resetMessage}</div>}
             
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="sign-in-form">
               <input
                 type="email"
                 placeholder="Email"
